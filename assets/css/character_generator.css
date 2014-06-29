@@ -1,0 +1,85 @@
+@charset "utf-8";
+/* CSS Document */
+
+.selected {
+	background: #999;
+	color: #444;
+}
+
+.select_inactive {
+	border-radius: 2px 4px 2px 4px / 4px 2px 4px 2px;
+	border-radius: 2px;
+	border-radius: 2px 4px / 4px;
+	width: 125px;
+	height: 25px;
+	background-color: #999;
+	float: left;
+	display: block;
+	text-align: center;
+	border: thin #CCC solid;
+	color: white;
+	margin: 0px 0px 0px 3px;
+	padding: 0;
+}
+
+.selectedListItem {
+	background: #CCC;
+}
+
+#tabs > div {
+	max-height: 400px; 
+	overflow-y: scroll;
+}
+
+/*#characterGenerator {
+	max-width: 400px;
+    padding: 10px;
+}
+
+#characterGenerator div {
+    margin: 1em 0;
+}*/
+
+.inactive {
+	background: #666;
+}
+
+/* changed 7/31/2012 */
+.windowList {
+	float: left;
+	width: 40%;
+	max-height: 300px;
+	overflow: auto;
+    margin-right: 5px;
+}
+
+.windowInfo {
+	float: right;
+	width: 55%;
+	overflow: auto;
+	max-height: 300px;
+    margin-left: 5px;
+}
+
+#abilityField input {
+	width: 30px;
+}
+
+#name {
+	border-bottom: white solid 1px;
+}
+
+ul.selection li input[type="checkbox"] {
+	width: 15px;
+	margin: 0;
+}
+
+.listSelect {
+	float: none;
+	width: 45%;
+}
+
+/* Bootstrap overrides */
+.controls {
+    padding: 5px;
+}
