@@ -214,15 +214,15 @@
         </div>
         <!--<form id="charGenForm" name="charGenForm" method="POST" action="insert_character.php">-->
         <form name="charGenForm" ng-submit="saveCharacter()" novalidate>
-            <input id="inputName" name="charName" ng-model="character.name" required />
-            <input id="inputRace" name="raceName" ng-model="character.raceObj.subrace.name" required />
-            <input id="inputClass" name="className" ng-model="character.classObj.name" required />
-            <input id="inputSubclass" name="subclassName" ng-model="character.classObj.subclassObj.name" ng-required="subclasses.length > 0" />
-            <input id="inputFeature" name="featureName" ng-model="selectedFeature.name" ng-required="featureChoices.length > 0" />
-            <input id="inputBackground" name="backgroundName" ng-model="character.background.name" required />
-            <input id="inputLanguage" name="languageName" ng-model="numLanguagesLeft" is-empty />
-            <input id="inputSkills" name="skillsName" ng-model="character.numSkillsLeft" is-empty />
-            <input id="inputAbPts" name="abPtsLeftName" ng-model="character.ability.pointsLeft" is-empty />
+            <input type="hidden" id="inputName" name="charName" ng-model="character.name" required />
+            <input type="hidden" id="inputRace" name="raceName" ng-model="character.raceObj.subrace.name" required />
+            <input type="hidden" id="inputClass" name="className" ng-model="character.classObj.name" required />
+            <input type="hidden" id="inputSubclass" name="subclassName" ng-model="character.classObj.subclassObj.name" ng-required="subclasses.length > 0" />
+            <input type="hidden" id="inputFeature" name="featureName" ng-model="selectedFeature.name" ng-required="featureChoices.length > 0" />
+            <input type="hidden" id="inputBackground" name="backgroundName" ng-model="character.background.name" required />
+            <input type="hidden" id="inputLanguage" name="languageName" ng-model="numLanguagesLeft" is-empty />
+            <input type="hidden" id="inputSkills" name="skillsName" ng-model="character.numSkillsLeft" is-empty />
+            <input type="hidden" id="inputAbPts" name="abPtsLeftName" ng-model="character.ability.pointsLeft" is-empty />
             <!--<input type="text" id="inputAlignment" ng-model="character.alignment" />-->
             <!--<button class="btn btn-primary" ng-click="saveCharacter()" ng-disabled="charGenForm.$invalid">Save Character</button>-->
             <button type="submit" class="btn btn-primary">Save Character</button> <!--ng-disabled="charGenForm.$invalid"-->
