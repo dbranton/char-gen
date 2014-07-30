@@ -3,7 +3,7 @@
 class Equipment_model extends CI_Model {
 
     public function getArmors() {
-        $sql = "SELECT * FROM armor_table ORDER BY sequence ASC";
+        $sql = "SELECT * FROM armor_table WHERE active = '1' ORDER BY sequence ASC";
         $query = $this->db->query($sql);
         if ($query->num_rows() > 0) {
             $equipment = array(
@@ -17,8 +17,16 @@ class Equipment_model extends CI_Model {
                 $armor['cost'] = $row->cost;
                 $armor['armor_bonus'] = $row->armor_bonus;
                 $armor['max_dex_bonus'] = $row->max_dex_bonus;
+                if ($armor['max_dex_bonus'] == '0') {
+                    $armor['bonus_desc'] = $armor['armor_bonus'];
+                } else if ($armor['max_dex_bonus'] > 0) {
+                    $armor['bonus_desc'] = $armor['armor_bonus'] . ' + Dexterity modifier (max ' . $armor['max_dex_bonus'] . ')';
+                } else {
+                    $armor['bonus_desc'] = $armor['armor_bonus'] . ' + Dexterity modifier';
+                }
+                $armor['max_dex_bonus'] = $row->max_dex_bonus;
                 $armor['armor_check_penalty'] = (empty($row->armor_check_penalty)) ? '&mdash;' : $row->armor_check_penalty;
-                $armor['speed'] = (empty($row->speed)) ? '&mdash;' : $row->speed . ' feet';
+                $armor['strength'] = (empty($row->strength)) ? '&mdash;' : 'Str ' . $row->strength;
                 array_push($equipment[$row->armor_type], $armor);
             }
             return $equipment;
@@ -26,7 +34,7 @@ class Equipment_model extends CI_Model {
     }
 
     public function getWeapons() {
-        $sql = "SELECT * FROM weapons_table ORDER BY name ASC";
+        $sql = "SELECT * FROM weapons_table WHERE active = '1' ORDER BY name ASC";
         $query = $this->db->query($sql);
         if ($query->num_rows() > 0) {
             $equipment = array(

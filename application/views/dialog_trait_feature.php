@@ -18,7 +18,7 @@
     <dl>
         <div ng-repeat="feature in features">
             <dt>{{feature.name}}</dt>
-            <dd ng-bind="feature.benefit"></dd>
+            <dd ng-bind-html="feature.benefit"></dd>
         </div>
     </dl>
 </div>

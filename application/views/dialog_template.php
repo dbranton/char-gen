@@ -1,4 +1,4 @@
-<script type="text/ng-template" id="<?php echo $id; ?>">
+
     <div class="modal-header">
         <h4 class="modal-title">{{title}}</h4>
     </div>
@@ -8,7 +8,7 @@
                 <?php $this->load->view($left_col); ?>
             </div>
             <div class="col-md-7">
-                <p>{{description}}</p>
+                <!--<p>{{description}}</p>-->
                 <h4>{{featureType}}</h4>
                 <?php $this->load->view($right_col); ?>
             </div> <!-- end span -->
@@ -18,4 +18,3 @@
         <button ng-click="done()" class="btn btn-primary">Done</button>
         <button ng-click="close()" class="btn btn-default">Cancel</button>
     </div>
-</script>

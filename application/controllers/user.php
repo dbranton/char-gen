@@ -78,22 +78,32 @@ class User extends CI_Controller {
     }
 
     public function saveCharacter() {
-        $this->form_validation->set_rules('charName', 'Name', 'required');
-        $this->form_validation->set_rules('raceName', 'Race', 'required');
-        $this->form_validation->set_rules('backgroundName', 'Background', 'required');
-        $this->form_validation->set_rules('className', 'Class', 'required');
-        $this->form_validation->set_rules('subclassName', 'Subclass', 'required');
-
-        if ($this->form_validation->run() == TRUE) {
-            $this->user_model->add_character();
-            //$data['characters'] = $this->user_model->get_characters();
+        $postdata = file_get_contents("php://input");
+        $request = json_decode($postdata);
+        $character = $request->character;
+        if (isset($this->session->userdata['logged_in'])) {
+            $user_id = $this->session->userdata['logged_in']['id'];
+            //$data['character'] = $this->user_model->add_character($user_id, $character);    // for testing only
+            $this->user_model->add_character($user_id, $character);
+        } else {
+            // throw error; comment out when local storage is implemented
+            header('HTTP/1.1 500 Internal Server Error');
+            header('Content-Type: application/json; charset=UTF-8');
+            die(json_encode(array('message' => 'User is not logged in')));
+        }
+        /*if ($this->form_validation->run() == TRUE) {
+            $data['character'] = $this->user_model->add_character();    // for testing only!!
             $data['title'] = 'Character Submitted';
             $data['main_content'] = 'pages/success';
         } else {
             //$data['title'] = 'Register';
             //$data['main_content'] = 'pages/register_view';
-        }
-        $this->load->view('template', $data);
+        }*/
+
+        // for testing only
+        //$data['title'] = 'Character Submitted';
+        //$data['main_content'] = 'pages/success';
+        //$this->load->view('template', $data);
     }
 
     public function yourCharacters() {

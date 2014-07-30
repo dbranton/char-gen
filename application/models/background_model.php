@@ -3,7 +3,7 @@
     class Background_model extends CI_Model {
 
         public function getBackgrounds() {
-            $sql = "SELECT * FROM background_table ORDER BY name ASC";
+            $sql = "SELECT * FROM background_table WHERE active = '1' ORDER BY name ASC";
             $query = $this->db->query($sql);
             if ($query->num_rows() > 0) {
                 $character = array();

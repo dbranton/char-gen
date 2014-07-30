@@ -50,9 +50,9 @@
     </div> <!-- end of "wrap" div -->
 
     <!-- SCRIPTS -->
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <?php
- echo '<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.4/angular.js"></script>';
+ echo '<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.19/angular.min.js"></script>';
  echo '<script src="' . $base_url . '/assets/js/vendor/angular/angular-sanitize.js"></script>';
  if($title == "Level Up" || $title == "Character Generator") {
     echo '<script src="' . $base_url . '/assets/js/vendor/transition.js"></script>';
@@ -68,10 +68,11 @@
     //echo '<script src="' . $base_url . '/assets/js/vendor/bootstrap-modal.js"></script>';
     echo '<script src="' . $base_url . '/assets/js/vendor/angular-ui/modal.js"></script>';  // needs to come after bootstrap
     //<script src="js/vendor/bootstrap.min.js"></script>
-    echo '<script src="' . $base_url . '/assets/js/userCtrl.js"></script>';
+    echo '<script src="' . $base_url . '/assets/js/controllers/userCtrl.js"></script>';
     if($title == "Character Generator" || $title == "Level Up") {
-        echo '<script src="' . $base_url . '/assets/js/character_generator.js"></script>';
-        echo '<script src="' . $base_url . '/assets/js/controller.js"></script>';
+        echo '<script src="' . $base_url . '/assets/js/services/character_generator.js"></script>';
+        echo '<script src="' . $base_url . '/assets/js/directives/directive.js"></script>';
+        echo '<script src="' . $base_url . '/assets/js/controllers/controller.js"></script>';
     }
 ?>
 <script type="text/javascript">

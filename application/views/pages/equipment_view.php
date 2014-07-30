@@ -4,8 +4,8 @@
         echo '<tr>' .
             '<td>' . $selArmor['armor'] . '</td>' .
             '<td>' . $selArmor['cost'] . '</td>' .
-            '<td>1' . $selArmor['armor_bonus'] . ' + Dex modifier</td>' .
-            '<td>' . $selArmor['speed'] . '</td>' .
+            '<td>' . $selArmor['bonus_desc'] . '</td>' .
+            '<td>' . $selArmor['strength'] . '</td>' .
             '<td>' . $selArmor['armor_check_penalty'] . '</td>' .
             '</tr>';
     }
@@ -32,7 +32,7 @@
                     <th>Armor</th>
                     <th>Price</th>
                     <th>Armor Class (AC)</th>
-                    <th>Speed</th>
+                    <th>Strength</th>
                     <th>Stealth</th>
                 </tr>
             </thead>

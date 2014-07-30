@@ -43,6 +43,12 @@ class Character_generator extends CI_Controller {
         print json_encode($data);
     }
 
+    public function json_get_skills() {
+        $this->load->model('skill_model');
+        $data = $this->skill_model->getSkills();
+        print json_encode($data);
+    }
+
 }
 
 

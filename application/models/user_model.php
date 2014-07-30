@@ -42,22 +42,119 @@ class User_model extends CI_Model {
         INNER JOIN features_table
         ON features_table.id = character_features.feature_id;
      */
-    public function add_character() {
-        $user_id = $this->session->userdata['logged_in']['id'];
+    public function add_character($user_id, $character) {
         $this->load->helper('string');
         $generatedId =  $user_id . '_' . random_string('numeric',5);    // ex: 9_54824
-        $str = intval($this->input->post('strScoreName'));
-        $dex = intval($this->input->post('dexScoreName'));
-        $con = intval($this->input->post('conScoreName'));
-        $int = intval($this->input->post('intScoreName'));
-        $wis = intval($this->input->post('wisScoreName'));
-        $cha = intval($this->input->post('chaScoreName'));
-        $strMod = $this->_calculateModifiers($str);
-        $dexMod = $this->_calculateModifiers($dex);
-        $conMod = $this->_calculateModifiers($con);
-        $intMod = $this->_calculateModifiers($int);
-        $wisMod = $this->_calculateModifiers($wis);
-        $chaMod = $this->_calculateModifiers($cha);
+        $name = $character->name;
+        $level = $character->level;
+        $raceName = $character->raceObj->subrace->name; // ex: Mountain Dwarf
+        $racialTraitIds = '';
+        foreach ($character->racialTraits as $racialTrait) {
+            if ($racialTraitIds != '') {
+                $racialTraitIds .= ', ';
+            }
+            $racialTraitIds .= $racialTrait->id;
+        }
+        $classFeatureIds = '';
+        foreach ($character->classFeatures as $classFeature) {
+            if ($classFeatureIds != '') {
+                $classFeatureIds .= ', ';
+            }
+            $classFeatureIds .= $classFeature->id;
+        }
+        $size = $character->size;
+        $speed = $character->speed;
+        $backgroundName = $character->background->name;
+        $languages = $character->languages;
+        $className = $character->classObj->name;
+        $subclassName = isset($character->classObj->subclassObj) ? $character->classObj->subclassObj->name : '';
+        $hitDice = intval($character->classObj->hit_dice);
+        $hitPoints = $character->hitPoints;
+        $profBonus = $character->profBonus;
+        $skillProf = $character->proficientSkills;
+        $armorProf = $character->armor;
+        $weaponProf = $character->weapons;
+        $toolProf = $character->tools;
+        foreach ($character->skills as $skill) {
+            switch ($skill->name) {
+                case 'Acrobatics':
+                    $acrobatics = $skill->val;
+                    break;
+                case 'Animal Handling':
+                    $animalHandling = $skill->val;
+                    break;
+                case 'Arcana':
+                    $arcana = $skill->val;
+                    break;
+                case 'Athletics':
+                    $athletics = $skill->val;
+                    break;
+                case 'Deception':
+                    $deception = $skill->val;
+                    break;
+                case 'History':
+                    $history = $skill->val;
+                    break;
+                case 'Insight':
+                    $insight = $skill->val;
+                    break;
+                case 'Intimidation':
+                    $intimidation = $skill->val;
+                    break;
+                case 'Investigation':
+                    $investigation = $skill->val;
+                    break;
+                case 'Medicine':
+                    $medicine = $skill->val;
+                    break;
+                case 'Nature':
+                    $nature = $skill->val;
+                    break;
+                case 'Perception':
+                    $perception = $skill->val;
+                    break;
+                case 'Performance':
+                    $performance = $skill->val;
+                    break;
+                case 'Persuasion':
+                    $persuasion = $skill->val;
+                    break;
+                case 'Religion':
+                    $religion = $skill->val;
+                    break;
+                case 'Sleight of Hand':
+                    $sleightOfHand = $skill->val;
+                    break;
+                case 'Stealth':
+                    $stealth = $skill->val;
+                    break;
+                case 'Survival':
+                    $survival = $skill->val;
+                    break;
+            }
+        }
+        $str = $character->ability->str->score;
+        $dex = $character->ability->dex->score;
+        $con = $character->ability->con->score;
+        $int = $character->ability->int->score;
+        $wis = $character->ability->wis->score;
+        $cha = $character->ability->cha->score;
+        $strMod = $character->ability->str->mod;
+        $dexMod = $character->ability->dex->mod;
+        $conMod = $character->ability->con->mod;
+        $intMod = $character->ability->int->mod;
+        $wisMod = $character->ability->wis->mod;
+        $chaMod = $character->ability->cha->mod;
+        $savingThrows = $character->savingThrows;
+        $strSave = $character->ability->str->savingThrow;
+        $dexSave = $character->ability->dex->savingThrow;
+        $conSave = $character->ability->con->savingThrow;
+        $intSave = $character->ability->int->savingThrow;
+        $wisSave = $character->ability->wis->savingThrow;
+        $chaSave = $character->ability->cha->savingThrow;
+        $initiative = $character->initiative;
+        $armorClass = $character->armorClass;
+        $passivePerception = $character->passivePerception;
         /*$racialTraitIds = explode(',', $this->input->post('racialTraitsName'));   // ex: ['2','5','16']
         $racialTraits = array();
         for($i=0, $size=count($racialTraitIds); $i<$size; $i++) {
@@ -76,24 +173,34 @@ class User_model extends CI_Model {
         }*/
         $data = array(
             'key' => $generatedId,
-            'name' => $this->input->post('charName'),
-            'race' => $this->input->post('raceName'),
-            'background' => $this->input->post('backgroundName'),
-            'languages' => $this->input->post('languageName'),
-            'size' => $this->input->post('sizeName'),
-            'class' => $this->input->post('className'),
-            'pseudo_class' => $this->input->post('subclassName'),
-            'level' => 1,
-            'skills' => $this->input->post('skillsName'),
-            'hit_points' => $this->input->post('hitPointsName'),
-            'hit_dice' => $this->input->post('hitDiceName'),
-            'initiative' => $this->input->post('initiativeName'),
-            'speed' => $this->input->post('speedName'),
-            'proficiency_bonus' => 1,
-            'armor_class' => $this->input->post('armorName'),
+            'name' => $name,
+            'race' => $raceName,
+            'racial_trait_ids' => $racialTraitIds,
+            'background' => $backgroundName,
+            'languages' => $languages,
+            'size' => $size,
+            'class' => $className,
+            'pseudo_class' => $subclassName,
+            'class_feature_ids' => $classFeatureIds,
+            'level' => $level,
+            'skills' => $skillProf,
+            'hit_points' => $hitPoints,
+            'hit_dice' => $hitDice,
+            'initiative' => $initiative,
+            'speed' => $speed,
+            'proficiency_bonus' => $profBonus,
+            'armor_class' => $armorClass,
             //'base_attk_bonus' => ???,
-            'tools' => $this->input->post('toolsName'),
-            'saving_throws' => $this->input->post('savingThrowsName'),
+            'armor_prof' => $armorProf,
+            'weapon_prof' => $weaponProf,
+            'tool_prof' => $toolProf,
+            'saving_throws' => $savingThrows,
+            'str_save' => $strSave,
+            'dex_save' => $dexSave,
+            'con_save' => $conSave,
+            'int_save' => $intSave,
+            'wis_save' => $wisSave,
+            'cha_save' => $chaSave,
             'strength' => $str,
             'dexterity' => $dex,
             'constitution' => $con,
@@ -106,10 +213,31 @@ class User_model extends CI_Model {
             'int_mod' => $intMod,
             'wis_mod' => $wisMod,
             'cha_mod' => $chaMod,
+            'acrobatics' => $acrobatics,
+            'animal_handling' => $animalHandling,
+            'arcana' => $arcana,
+            'athletics' => $athletics,
+            'deception' => $deception,
+            'history' => $history,
+            'insight' => $insight,
+            'intimidation' => $intimidation,
+            'investigation' => $investigation,
+            'medicine' => $medicine,
+            'nature' => $nature,
+            'perception' => $perception,
+            'performance' => $performance,
+            'persuasion' => $persuasion,
+            'religion' => $religion,
+            'sleight_of_hand' => $sleightOfHand,
+            'stealth' => $stealth,
+            'survival' => $survival,
+            'senses' => $passivePerception,
             'user_id' => $user_id,
             'date_added' => date("m/d/Y")
         );
-        //$this->db->insert('character_table', $data);
+        //return $data;
+        // TODO: uncomment later
+        $this->db->insert('character_table', $data);
         //$this->db->insert_batch('character_features', $racialTraits);
     }
 
@@ -151,7 +279,9 @@ class User_model extends CI_Model {
             $character['armor_class'] = $row->armor_class;
             $character['hit_points'] = $row->hit_points;
             $character['hit_dice'] = $row->hit_dice;
+            $character['initiative'] = $row->initiative >= 0 ? '+' . $row->initiative : $row->initiative;
             $character['proficiency_bonus'] = $row->proficiency_bonus;
+            $character['proficiencies'] = $row->armor_prof . ', ' . $row->weapon_prof . ', ' . $row->tool_prof;
             $character['speed'] = $row->speed;
             $character['languages'] = $row->languages;
             $character['strength'] = $row->strength;
@@ -160,9 +290,40 @@ class User_model extends CI_Model {
             $character['intelligence'] = $row->intelligence;
             $character['wisdom'] = $row->wisdom;
             $character['charisma'] = $row->charisma;
-            $character['skills'] = $row->skills;
-            $character['traits'] = $this->_getRacialTraits($characterId);
-            $character['features'] = $this->_getClassFeatures($characterId, $row->level);
+            $character['str_mod'] = $row->str_mod >= 0 ? '+' . $row->str_mod : $row->str_mod;
+            $character['dex_mod'] = $row->dex_mod >= 0 ? '+' . $row->dex_mod : $row->dex_mod;
+            $character['con_mod'] = $row->con_mod >= 0 ? '+' . $row->con_mod : $row->con_mod;
+            $character['int_mod'] = $row->int_mod >= 0 ? '+' . $row->int_mod : $row->int_mod;
+            $character['wis_mod'] = $row->wis_mod >= 0 ? '+' . $row->wis_mod : $row->wis_mod;
+            $character['cha_mod'] = $row->cha_mod >= 0 ? '+' . $row->cha_mod : $row->cha_mod;
+            $character['str_st'] = $row->str_save >= 0 ? '+' . $row->str_save : $row->str_save;
+            $character['dex_st'] = $row->dex_save >= 0 ? '+' . $row->dex_save : $row->dex_save;
+            $character['con_st'] = $row->con_save >= 0 ? '+' . $row->con_save : $row->con_save;
+            $character['int_st'] = $row->int_save >= 0 ? '+' . $row->int_save : $row->int_save;
+            $character['wis_st'] = $row->wis_save >= 0 ? '+' . $row->wis_save : $row->wis_save;
+            $character['cha_st'] = $row->cha_save >= 0 ? '+' . $row->cha_save : $row->cha_save;
+            //$character['skills'] = $row->skills;
+            $character['acrobatics'] = $row->acrobatics >= 0 ? '+' . $row->acrobatics : $row->acrobatics;
+            $character['animal_handling'] = $row->animal_handling >= 0 ? '+' . $row->animal_handling : $row->animal_handling;
+            $character['arcana'] = $row->arcana >= 0 ? '+' . $row->arcana : $row->arcana;
+            $character['athletics'] = $row->athletics >= 0 ? '+' . $row->athletics : $row->athletics;
+            $character['deception'] = $row->deception >= 0 ? '+' . $row->deception : $row->deception;
+            $character['history'] = $row->history >= 0 ? '+' . $row->history : $row->history;
+            $character['insight'] = $row->insight >= 0 ? '+' . $row->insight : $row->insight;
+            $character['intimidation'] = $row->intimidation >= 0 ? '+' . $row->intimidation : $row->intimidation;
+            $character['investigation'] = $row->investigation >= 0 ? '+' . $row->investigation : $row->investigation;
+            $character['medicine'] = $row->medicine >= 0 ? '+' . $row->medicine : $row->medicine;
+            $character['nature'] = $row->nature >= 0 ? '+' . $row->nature : $row->nature;
+            $character['perception'] = $row->perception >= 0 ? '+' . $row->perception : $row->perception;
+            $character['performance'] = $row->performance >= 0 ? '+' . $row->performance : $row->performance;
+            $character['persuasion'] = $row->persuasion >= 0 ? '+' . $row->persuasion : $row->persuasion;
+            $character['religion'] = $row->religion >= 0 ? '+' . $row->religion : $row->religion;
+            $character['sleight_of_hand'] = $row->sleight_of_hand >= 0 ? '+' . $row->sleight_of_hand : $row->sleight_of_hand;
+            $character['stealth'] = $row->stealth >= 0 ? '+' . $row->stealth : $row->stealth;
+            $character['survival'] = $row->survival >= 0 ? '+' . $row->survival : $row->survival;
+            $character['senses'] = $row->senses;
+            $character['traits'] = $this->_getRacialTraits($row->racial_trait_ids);
+            $character['features'] = $this->_getClassFeatures($row->class_feature_ids);
             $character['background'] = $this->_getBackground($row->background);
             return $character;
         } else {
@@ -170,7 +331,51 @@ class User_model extends CI_Model {
         }
     }
 
-    private function _getRacialTraits($characterId) {
+    private function _getRacialTraits($racialTraitIds) {
+        $sql = "SELECT race_features.*" .
+            " FROM race_features" .
+            " WHERE race_features.id IN (" . $racialTraitIds . ")";
+        $query = $this->db->query($sql);
+        if ($query->num_rows() > 0) {
+            $racialTraits = array();
+            foreach ($query->result() as $row) {
+                $racialTrait['name'] = $this->_getFeatureName($row->feature_id);
+                $racialTrait['description'] = $row->benefit;
+                array_push($racialTraits, $racialTrait);
+            }
+            return $racialTraits;
+        }
+    }
+
+    private function _getFeatureName($featureId) {
+        $sql = "SELECT features_table.name" .
+            " FROM features_table" .
+            " WHERE id = '" . $featureId . "'";
+        $query = $this->db->query($sql);
+        if ($query->num_rows() > 0) {
+            $row = $query->row();
+            return $row->name;
+        }
+    }
+
+    private function _getClassFeatures($classFeatureIds) {
+        $sql = "SELECT class_features.*" .
+            " FROM class_features" .
+            " WHERE class_features.id IN (" . $classFeatureIds . ")" .
+            " ORDER BY level ASC";
+        $query = $this->db->query($sql);
+        if ($query->num_rows() > 0) {
+            $classFeatures = array();
+            foreach ($query->result() as $row) {
+                $classFeature['name'] = $this->_getFeatureName($row->feature_id);
+                $classFeature['benefit'] = $row->benefit;
+                array_push($classFeatures, $classFeature);
+            }
+            return $classFeatures;
+        }
+    }
+
+    /*private function _getRacialTraits($characterId) {
         $sql = "SELECT features_table.*" .
             " FROM features_table" .
             " JOIN race_features" .
@@ -191,9 +396,9 @@ class User_model extends CI_Model {
             }
             return $racialTraits;
         }
-    }
+    }*/
 
-    private function _getClassFeatures($characterId, $level) {
+    /*private function _getClassFeatures($characterId, $level) {
         $sql = "SELECT features_table.*" .
             " FROM features_table" .
             " JOIN class_features" .
@@ -214,7 +419,7 @@ class User_model extends CI_Model {
             }
             return $classFeatures;
         }
-    }
+    }*/
 
     private function _getBackground($backgroundName) {
         $sql = "SELECT background_table.*" .

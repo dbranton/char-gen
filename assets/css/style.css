@@ -164,27 +164,6 @@ dl dt:after {
     padding: 2px 6px;
 }
 
-/* Table Sorter Styles */
-
-th.header {
-    background-image: url(../img/bg.gif);
-    cursor: pointer;
-    font-weight: bold;
-    background-repeat: no-repeat;
-    background-position: center left;
-    padding-left: 20px;
-    border-right: 1px solid #dad9c7;
-    margin-left: -1px;
-}
-
-th.headerSortUp {
-    background-image: url(../img/asc.gif);
-}
-
-th.headerSortDown {
-    background-image: url(../img/desc.gif);
-}
-
 /* to account for modal not showing up in bootstrap 3.0 https://github.com/angular-ui/bootstrap/issues/722 */
 /*.modal {
     display: block;
@@ -197,7 +176,7 @@ th.headerSortDown {
 }
 
 .modal-body {
-    max-height: 400px;
+    height: 400px;
     overflow: hidden; /*auto;*/
 }
 
@@ -219,6 +198,10 @@ legend.small-legend {
 input.ability {
     width: 30px;
     text-align: center;
+}
+
+.alert {
+    padding: 10px; /* overwrite 15px */
 }
 
 /* End Table Sorter Styles */

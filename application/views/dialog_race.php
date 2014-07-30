@@ -1,5 +1,4 @@
 <!--<div ng-app="generator" ng-controller="CharGen">-->
-<script type="text/ng-template" id="raceModal.html">
     <div class="modal-header">
         <h4 class="modal-title">{{title}}</h4>
     </div>
@@ -30,14 +29,14 @@
             <div class="col-md-7">
                 <h3>{{featureType}}</h3>
                 <dl ng-hide="!tempRace">
-                    <dt>Ability Score Adjustment</dt>
-                    <dd>{{race_aba}} {{subrace_aba}}</dd>
+                    <!--<dt>Ability Score Increase</dt>
+                    <dd>{{race_aba}} {{subrace_aba}}</dd>-->
                     <dt>Size</dt>
                     <dd>{{size}}</dd>
                     <dt>Speed</dt>
                     <dd>{{speed}}</dd>
-                    <dt>Languages</dt>
-                    <dd>{{languages}}</dd>
+                    <!--<dt>Languages</dt>
+                    <dd>{{languages}}</dd>-->
                     <div ng-repeat="trait in traits">
                         <dt>{{trait.name}}</dt>
                         <dd>{{trait.benefit}}</dd>
@@ -50,4 +49,3 @@
         <button ng-click="done()" class="btn btn-primary">Done</button>
         <button ng-click="close()" class="btn btn-default">Cancel</button>
     </div>
-</script>

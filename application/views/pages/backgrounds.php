@@ -8,7 +8,7 @@ if (is_array($backgrounds))://var_dump($backgrounds);?>
             <div id="collapse<?php echo $i; ?>" class="panel-collapse collapse">
                 <div class="panel-body">
                     <p><?php echo $backgrounds[$i]['desc']; ?></p>
-                    <p><b>Trait—<?php echo $backgrounds[$i]['trait_name']; ?>:</b>
+                    <p><b>Feature: <?php echo $backgrounds[$i]['trait_name']; ?>:</b>
                     <?php echo $backgrounds[$i]['trait_desc']; ?></p>
                     <p><b>Skills:</b> <?php echo $backgrounds[$i]['skills']; ?></p>
                     <?php if ($backgrounds[$i]['tools']): ?>
