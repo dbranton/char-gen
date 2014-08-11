@@ -2,11 +2,12 @@
 <?php $is_mobile = ($mobile) ? 'true' : 'false'; ?>
 
 <div id="charGenApp" class="form-horizontal" ng-app="generator" ng-controller="CharGen" ng-init="init()">
+    <span class="hide">{{isMobile=<?php echo $is_mobile; ?>}}</span>
     <span ng-hide="true">Loading Character Generator...</span>
     <div ng-cloak>
         <div ng-if="isNotLoggedIn" class="alert alert-warning" ng-hide="successMessage">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <p>You are not currently logged in. You will not be able to save your character until you have logged in to your account.</p>
+            <p>You are not currently logged in. If saved, your character will be stored on the browser instead of your account.</p>
         </div>
         <div id="successMsg" class="alert alert-success" ng-show="successMessage">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -41,8 +42,8 @@
                             <div class="form-group">
                                 <label class="col-sm-4 control-label">Race:</label>
                                 <div class="col-sm-8">
-                                    <div class="input-group">
-                                        <label class="input-group-addon btn btn-default" ng-click="openRaceDialog()">
+                                    <div ng-class="{'input-group':!isMobile}">
+                                        <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openRaceDialog()">
                                             <span class="fa fa-columns"></span>
                                         </label>
                                         <select ui-select2 ng-model="character.raceObj.subrace.name" id="selectRace"
@@ -55,8 +56,8 @@
                             <div class="form-group">
                                 <label class="col-sm-4 control-label">Background:</label>
                                 <div class="col-sm-8">
-                                    <div class="input-group">
-                                        <label class="input-group-addon btn btn-default" ng-click="openBackgroundDialog()">
+                                    <div ng-class="{'input-group':!isMobile}">
+                                        <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openBackgroundDialog()">
                                             <span class="fa fa-columns"></span>
                                         </label>
                                         <select ui-select2 ng-model="character.background.name" id="selectBackground"
@@ -86,8 +87,8 @@
                             <div class="form-group">
                                 <label class="col-sm-4 control-label">Class:</label>
                                 <div class="col-sm-8">
-                                    <div class="input-group">
-                                        <label class="input-group-addon btn btn-default" ng-click="openClassDialog()">
+                                    <div ng-class="{'input-group':!isMobile}">
+                                        <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openClassDialog()">
                                             <span class="fa fa-columns"></span>
                                         </label>
                                         <select ui-select2 ng-model="character.classObj.name" id="selectClass"
@@ -100,8 +101,8 @@
                             <div class="form-group" ng-show="character.classObj.subclasses.length > 0 || character.classObj.subclassObj">
                                 <label class="col-sm-4 control-label">Subclass:</label>
                                 <div class="col-sm-8">
-                                    <div class="input-group">
-                                        <label class="input-group-addon btn btn-default" ng-click="openSubclassDialog()">
+                                    <div ng-class="{'input-group':!isMobile}">
+                                        <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openSubclassDialog()">
                                             <span class="fa fa-columns"></span>
                                         </label>
                                         <select ui-select2 ng-model="character.classObj.subclassObj.name"
@@ -114,8 +115,8 @@
                             <div class="form-group" ng-repeat="selectedFeature in selectedFeatures">
                                 <label class="col-sm-4 control-label">Feature:</label>
                                 <div class="col-sm-8">
-                                    <div class="input-group">
-                                        <label class="input-group-addon btn btn-default" ng-click="openFeatureDialog()">
+                                    <div ng-class="{'input-group':!isMobile}">
+                                        <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openFeatureDialog()">
                                             <span class="fa fa-columns"></span>
                                         </label>
                                         <select ui-select2 ng-model="selectedFeatures[$index].name"
@@ -279,7 +280,7 @@
                     <!--<input type="text" id="inputAlignment" ng-model="character.alignment" />-->
                     <!--<button class="btn btn-primary" ng-click="saveCharacter()" ng-disabled="charGenForm.$invalid">Save Character</button>-->
                     <button type="submit" class="btn btn-primary">Save Character</button> <!--ng-disabled="charGenForm.$invalid"-->
-                    <button type="button" class="btn btn-default" ng-click="openSummary()">Open Summary</button>
+                    <button type="button" class="btn btn-default" ng-click="openSummary()" ng-if="!isMobile">Open Summary</button>
                     <div class="error-container" ng-show="validating && charGenForm.$invalid">
                         <div><small class="text-danger" ng-show="charGenForm.charName.$error.required">Please name your character</small></div>
                         <div><small class="text-danger" ng-show="charGenForm.raceName.$error.required">Please choose a race</small></div>

@@ -9,7 +9,7 @@
 <div id="wrap" class="container">
   <div class="row">
     <div id="sidebarmenu" class="col-md-3">
-        <aside>
+        <aside class="affix">
             <ul id="sidebar" class="nav nav-pills nav-stacked">
                 <!--<li class="nav-header">Character Info</li>-->
                 <!--<li <?php //if ($this->uri->uri_string() == 'basics') echo 'class="active"'; ?>><?php echo anchor('basics', 'Basics'); ?></li>-->

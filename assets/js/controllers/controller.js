@@ -163,22 +163,12 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
         openDialog('lg');
     };
 
-    // Deprecated; could still be used for mobile purposes though
-    function determineNumItems(selector, value) {
-        $scope.isMobile = $('#isMobile').val();
-        if ($scope.isMobile === 'true') {
-            $('.select2-input').prop('readonly', true);
-        }
+    $scope.$watch('isMobile', function(newVal) {
+       if (newVal) {
+           $('.select2-input').prop('readonly', true);
+       }
+    });
 
-        return value;   //$scope.select2Languages;
-    }
-
-    // Watches
-    /*$scope.$watch('character.level', function(newValue) {
-        if (!isNaN(newValue)) {
-
-        }
-    });*/
     $scope.$watch('character.selectedLanguages', function(newValue, oldValue) {   // triggered whenever a language is selected
         if ((newValue || (!newValue && oldValue)) && $scope.character.raceObj) {   //(newValue || oldValue)
             // TODO: handleLanguages();
