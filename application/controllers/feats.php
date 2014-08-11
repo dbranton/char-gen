@@ -11,6 +11,7 @@ class Feats extends CI_Controller {
         $data['feats'] = $this->feat_model->getFeats();
         $data['title'] = 'Feats';
         $data['main_content'] = 'pages/feats_view';
+        $data['type'] = '';
         $this->load->view('template', $data);
     }
 }

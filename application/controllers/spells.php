@@ -11,6 +11,7 @@ class Spells extends CI_Controller {
         $data['spells'] = $this->spell_model->getSpells();
         $data['title'] = 'Spells';
         $data['main_content'] = 'pages/spells_view';
+        $data['type'] = '';
         $this->load->view('template', $data);
     }
 

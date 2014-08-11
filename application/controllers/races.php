@@ -11,6 +11,7 @@ class Races extends CI_Controller {
         $data['races'] = $this->race_model->getRaces();
         $data['title'] = 'Races';
         $data['main_content'] = 'pages/races';
+        $data['type'] = '';
         $this->load->view('template', $data);
     }
 
@@ -25,6 +26,7 @@ class Races extends CI_Controller {
         $data['race'] = $this->race_model->getRaces($race);
         $data['title'] = $race;
         $data['main_content'] = 'pages/race_view';
+        $data['type'] = '';
         $this->load->view('template', $data);
     }
 

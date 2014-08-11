@@ -12,6 +12,7 @@ class Equipment extends CI_Controller {
         $data['weapon'] = $this->equipment_model->getWeapons();
         $data['title'] = 'Equipment';
         $data['main_content'] = 'pages/equipment_view';  // races view works the same for classes
+        $data['type'] = '';
         $this->load->view('template', $data);
     }
 

@@ -12,7 +12,7 @@
         <aside>
             <ul id="sidebar" class="nav nav-pills nav-stacked">
                 <!--<li class="nav-header">Character Info</li>-->
-                <li <?php if ($this->uri->uri_string() == 'basics') echo 'class="active"'; ?>><?php echo anchor('basics', 'Basics'); ?></li>
+                <!--<li <?php //if ($this->uri->uri_string() == 'basics') echo 'class="active"'; ?>><?php echo anchor('basics', 'Basics'); ?></li>-->
                 <li <?php if ($this->uri->uri_string() == 'races') echo 'class="active"'; ?>><?php echo anchor('races', 'Races'); ?></li>
                 <li <?php if ($this->uri->uri_string() == 'classes') echo 'class="active"'; ?>><?php echo anchor('classes', 'Classes'); ?></li>
                 <li <?php if ($this->uri->uri_string() == 'backgrounds') echo 'class="active"'; ?>><?php echo anchor('backgrounds', 'Backgrounds'); ?></li>
