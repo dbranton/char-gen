@@ -12,20 +12,32 @@ class Dialog extends CI_Controller {
         //$this->load->view('dialog_template', $data);
     }
     public function raceDialog() {
-        $this->load->view('dialog_race');
+        $this->load->view('partials/dialog_race');
     }
 
     public function classDialog() {
-        $data['left_col'] = 'dialog_list_col';
-        $data['right_col'] = 'dialog_trait_feature';
+        $data['left_col'] = 'partials/dialog_list_col';
+        $data['right_col'] = 'partials/dialog_trait_feature';
         $data['id'] = 'classModal.html';
-        $this->load->view('dialog_template', $data);
+        $this->load->view('partials/dialog_template', $data);
     }
 
     public function background() {
-        $data['left_col'] = 'dialog_list_col';
-        $data['right_col'] = 'dialog_background';
-        $this->load->view('dialog_template', $data);
+        $data['left_col'] = 'partials/dialog_list_col';
+        $data['right_col'] = 'partials/dialog_background';
+        $this->load->view('partials/dialog_template', $data);
+    }
+
+    public function spellDialog() {
+        $this->load->view('partials/dialog_spells');
+    }
+
+    public function summary() {
+        $this->load->view('partials/dialog_summary');
+    }
+
+    public function newChar() {
+        $this->load->view('partials/dialog_new_character');
     }
     // included in character_generator_view (or should it?)
     /*public function abilityscore() {

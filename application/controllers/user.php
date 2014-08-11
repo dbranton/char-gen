@@ -11,7 +11,6 @@ class User extends CI_Controller {
     }
 
     public function login() {
-
         $this->form_validation->set_rules('username', 'Username', 'trim|required|xss_clean');
         $this->form_validation->set_rules('password', 'Password', 'trim|required|xss_clean|callback_check_database');
 
@@ -26,6 +25,7 @@ class User extends CI_Controller {
             $data['title'] = 'Login';
             $data['main_content'] = 'pages/login_view';
         }
+        $data['type'] = 'user';
         $this->load->view('template', $data);
     }
 
@@ -36,7 +36,7 @@ class User extends CI_Controller {
         $this->form_validation->set_rules('password', 'Password', 'trim|required|min_length[4]|max_length[32]');
         $this->form_validation->set_rules('con_password', 'Password Confirmation', 'trim|required|matches[password]');
         $this->form_validation->set_message('valid_email', 'Your email is not valid');
-
+        $data['type'] = '';
 
         if ($this->form_validation->run() == TRUE) {
             $this->user_model->add_user();
@@ -86,30 +86,44 @@ class User extends CI_Controller {
             //$data['character'] = $this->user_model->add_character($user_id, $character);    // for testing only
             $this->user_model->add_character($user_id, $character);
         } else {
-            // throw error; comment out when local storage is implemented
+            // throw error/comment out when local storage is implemented
             header('HTTP/1.1 500 Internal Server Error');
             header('Content-Type: application/json; charset=UTF-8');
             die(json_encode(array('message' => 'User is not logged in')));
         }
-        /*if ($this->form_validation->run() == TRUE) {
-            $data['character'] = $this->user_model->add_character();    // for testing only!!
-            $data['title'] = 'Character Submitted';
-            $data['main_content'] = 'pages/success';
-        } else {
-            //$data['title'] = 'Register';
-            //$data['main_content'] = 'pages/register_view';
-        }*/
 
         // for testing only
-        //$data['title'] = 'Character Submitted';
-        //$data['main_content'] = 'pages/success';
-        //$this->load->view('template', $data);
+        /*$data['title'] = 'Character Submitted';
+        $data['main_content'] = 'pages/success';
+        $this->load->view('template', $data);*/
+    }
+
+    public function deleteCharacter($charId) {
+        $this->user_model->delete_character($charId);
     }
 
     public function yourCharacters() {
-        $data['characters'] = $this->user_model->get_characters();
-        $data['title'] = 'Your Characters';
-        $data['main_content'] = 'pages/characters_view';
+        if (isset($this->session->userdata['logged_in'])) {
+            $data['title'] = 'Your Characters';
+            $data['main_content'] = 'pages/characters_view';
+            $data['type'] = 'user';
+            $this->load->view('template', $data);
+        } else {
+            $this->login();
+        }
+    }
+
+    public function getCharacters() {
+        $data = $this->user_model->get_characters();
+        print json_encode($data);
+    }
+
+    public function character_generator() {
+        $this->load->library('user_agent');
+        $data['mobile'] = $this->agent->is_mobile();
+        $data['title'] = 'Character Generator';
+        $data['type'] = 'character_generator';
+        $data['main_content'] = 'pages/character_generator_view';  // races view works the same for classes
         $this->load->view('template', $data);
     }
 
@@ -118,10 +132,15 @@ class User extends CI_Controller {
             $data['character'] = $this->user_model->get_character($characterId);
             $data['title'] = $data['character']['name'];
             $data['main_content'] = 'pages/character_view';
+            $data['type'] = '';
             $this->load->view('template', $data);
         } else {
             $this->login();
         }
+    }
+
+    public function checkIfLoggedIn() {
+        print json_encode(isset($this->session->userdata['logged_in']));
     }
 }
 

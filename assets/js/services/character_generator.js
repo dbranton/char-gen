@@ -1,9 +1,10 @@
 'use strict';
-var charGenService = angular.module('charGenService', []);
-charGenService.factory('charGenFactory', function() {
+var charGenService = angular.module('charGenService', ['LocalStorageModule']);
+charGenService.factory('charGenFactory', function($http, localStorageService) {
     var ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
     var MIN_ABILITY = 8;
     var MAX_ABILITY = 15;
+    //var ABILITY_MAPPER = {'str':'Strength', 'dex':'Dexterity', 'con':'Constitution', 'int':'Intelligence', 'wis':'Wisdom', 'cha':'Charisma'};
 
     function Character() {
         this.name = null,
@@ -21,9 +22,9 @@ charGenService.factory('charGenFactory', function() {
         this.attackMod = null;
         this.savingThrows = null;
         this.hitPoints = null;
-        this.classFeatures = [];
+        //this.classFeatures = [];  // now located in classObj
         //this.featureIds = [];
-        this.racialTraits = [];
+        //this.racialTraits = [];   // now located in raceObj
         //this.racialTraitIds = [];
         this.speed = null;
         this.initiative = null;
@@ -34,18 +35,37 @@ charGenService.factory('charGenFactory', function() {
         this.profBonus = 0;
         this.passivePerception = 10;
     }
-    Character.prototype.updateSkillProficiency = function(skillName, disable) {
+    var enabledSkills;
+    Character.prototype.updateSkillProficiency = function(skillName, isAdded, disabled) {   // if isAdded is false, then remove skill
         var that = this;
         if (angular.isArray(this.skills)) {
             if (skillName) {
                 this.skills.forEach(function(skill, i) {
                     if (skillName.indexOf(skill.name) !== -1) {
-                        that.skills[i].proficient = true;
-                        that.updateSkillScore(skill.name);
-                        that.selectedSkills.push(skill.name);
-                        that.selectedSkills.sort();
-                        if (disable) {
+                        if (disabled) {    // skills[i].proficient will already be updated when user checks/unchecks a skill
+                            that.skills[i].proficient = isAdded;
                             that.skills[i].disabled = true;
+                        }
+                        that.updateSkillScore(skill.name);
+                        if (isAdded) {  // add skill
+                            that.selectedSkills.push(skill.name);
+                            that.selectedSkills.sort(); // no need to sort a spliced array
+                            that.numSkillsLeft--;
+                            if (that.numSkillsLeft === 0) {
+                                enabledSkills = [];
+                                that.skills.forEach(function(skill) {
+                                    if (skill.disabled === false) {
+                                        enabledSkills.push(skill.name);   // save currently enabled skills for later
+                                    }
+                                });
+                                that.enableSkills(false);  // then disable all skills except the checked ones
+                            }
+                        } else {    // remove skill
+                            that.selectedSkills.splice(that.selectedSkills.indexOf(skill.name), 1); // remove skill
+                            that.numSkillsLeft++;
+                            if (that.numSkillsLeft === 1) {
+                                that.enableSkills(enabledSkills);    // reenable proficient skills that were disabled
+                            }
                         }
                     }
                 });
@@ -56,6 +76,10 @@ charGenService.factory('charGenFactory', function() {
                 });
             }
         }
+        if (this.classObj && disabled) { // disable is true if background was selected, or selected High Elf (perception)
+            this.numSkillsLeft = parseInt(this.classObj.num_skills);    // resets numSkills since some skills will be automatically selected
+        }
+        this.getProficientSkills();
     };
     Character.prototype.enableSkills = function(classSkills, backgroundSkills) {   // skills is an array, exceptions is comma separated string
         var that = this;
@@ -85,7 +109,7 @@ charGenService.factory('charGenFactory', function() {
         this.updateSkillProficiency(false); // wipe skill proficiencies
         this.enableSkills(false);   // disable all skills
         if (this.background) {
-            this.updateSkillProficiency(this.background.skills, true);
+            this.updateSkillProficiency(this.background.skills, true, true);
             this.enableSkills(classSkills, this.background.skills);
         } else {
             this.enableSkills(classSkills);
@@ -128,16 +152,33 @@ charGenService.factory('charGenFactory', function() {
             this.ability[ability].mod = Math.floor((this.ability[ability].score - 10) / 2);
             this.ability[ability].savingThrow = this.calculateSavingThrows(ability);
         } else {    // apply to all abilities
-            this.ability.str.mod = Math.floor((this.ability.str.score - 10) / 2);
-            this.ability.dex.mod = Math.floor((this.ability.dex.score - 10) / 2);
-            this.ability.con.mod = Math.floor((this.ability.con.score - 10) / 2);
-            this.ability.int.mod = Math.floor((this.ability.int.score - 10) / 2);
-            this.ability.wis.mod = Math.floor((this.ability.wis.score - 10) / 2);
-            this.ability.cha.mod = Math.floor((this.ability.cha.score - 10) / 2);
+            this.ability.str.mod = returnModifier(this.ability.str.score);
+            this.ability.dex.mod = returnModifier(this.ability.dex.score);
+            this.ability.con.mod = returnModifier(this.ability.con.score);
+            this.ability.int.mod = returnModifier(this.ability.int.score);
+            this.ability.wis.mod = returnModifier(this.ability.wis.score);
+            this.ability.cha.mod = returnModifier(this.ability.cha.score);
             var that = this;
             ABILITIES.forEach(function(ability) {
                 that.ability[ability].savingThrow = that.calculateSavingThrows(ability);
             });
+        }
+        this.updateSkillScore();    // called to update because modifier changes might affect scores
+        // update spellcasting stats if any
+        if (this.classObj && this.classObj.spellcasting && (!ability || this.classObj.spellcasting.spellAbility === ability)) {
+            this.handleSpellcasting();
+        }
+        // handle dexterity-specific stats
+        if (!ability || ability === 'dex') {
+            this.initiative = this.ability.dex.mod;
+            this.armorClass = 10 + this.ability.dex.mod;
+        }
+        if (!ability || ability === 'con') {
+            this.handleHitPoints();
+        }
+
+        function returnModifier(score) {
+            return Math.floor((score - 10) / 2);
         }
     };
     Character.prototype.modifyAbilityScore = function(ability, value) {
@@ -160,19 +201,32 @@ charGenService.factory('charGenFactory', function() {
                     }
                     this.ability.pointsLeft -= abilityCost;
                 } else {    // value == -1
-                    if (currValueMinusDiff > 15) {
-                        abilityCost = 3;
-                    } else if (currValueMinusDiff > 13) {
-                        abilityCost = 2;
-                    } else if (currValueMinusDiff <= 13) {
-                        abilityCost = 1;
+                    if (pointsLeft === 0 && this.ability.bonusPointsLeftArr.indexOf(ability) !== -1) {
+                        this.ability.bonusPointsLeftArr.splice(this.ability.bonusPointsLeftArr.indexOf(ability), 1);    // remove from array
+                    } else {
+                        if (currValueMinusDiff > 15) {
+                            abilityCost = 3;
+                        } else if (currValueMinusDiff > 13) {
+                            abilityCost = 2;
+                        } else if (currValueMinusDiff <= 13) {
+                            abilityCost = 1;
+                        }
+                        this.ability.pointsLeft += abilityCost;
                     }
-                    this.ability.pointsLeft += abilityCost;
                 }
-                this.ability[ability].score += value;
-                this.ability[ability].mod = Math.floor((this.ability[ability].score-10)/2);
-                this.calculateModifiers(ability);
+                updateScore(this, ability, value);
             }
+        } else if (pointsLeft === 0) {
+            if (this.ability[ability].score < 20 && this.ability.bonusPoints - this.ability.bonusPointsLeftArr.length > 0) {
+                updateScore(this, ability, value); // increment ability and push to array to store where the bonus point went
+                //this.ability.bonusPointsLeftArr.push({"ability": ability, "score": this.ability[ability].score});
+                this.ability.bonusPointsLeftArr.push(ability);  // ex: ['str', 'str']
+            }
+        }
+        function updateScore(character, ability, value) {
+            character.ability[ability].score += value;
+            character.ability[ability].mod = Math.floor((character.ability[ability].score-10)/2);
+            character.calculateModifiers(ability);
         }
     };
     Character.prototype.resetRacialBonuses = function() {
@@ -188,27 +242,34 @@ charGenService.factory('charGenFactory', function() {
             }
         });
     };
+    Character.prototype.handleSpellcasting = function() {
+        this.classObj.spellcasting.spellSaveDC = 8 + this.profBonus + this.ability[this.classObj.spellcasting.spellAbility].mod;
+        this.classObj.spellcasting.spellAttkBonus = this.profBonus + this.ability[this.classObj.spellcasting.spellAbility].mod;
+    };
     Character.prototype.handleFeatureBonuses = function(featureBonus) {
         var bonusArray = [], characterArray = [], that = this;
         this.armor = this.classObj ? this.classObj.armor_prof : null;
         this.weapons = this.classObj ? this.classObj.weapon_prof : null;
         for (var bonusProp in featureBonus) {
-            var propArray = bonusProp.split(', ');
-            propArray.forEach(function(prop) {
-                if (that[prop] !== null && (prop === 'hitPoints' || prop === 'initiative' || prop === 'armorClass' || prop === 'attackMod' ||
+            var propArray = bonusProp.split(', ');  // usually results in one item
+            propArray.forEach(function(prop, ind) {
+                if (that[prop] !== null && (prop === 'initiative' || prop === 'armorClass' || prop === 'attackMod' ||
                     prop === 'speed' || prop === 'numLanguages')) {
                     that[prop] += parseInt(featureBonus[prop]); // character prop needs to exist to add
+                } else if (that[prop] !== null && prop === 'hitPoints') {   // assume hitPoint bonuses apply every level
+                    that[prop] += (that.level * (parseInt(featureBonus[prop])));    // multiply hitPoint bonus by level
                 } else if (ABILITIES.indexOf(prop) !== -1) {    // ex: 'str', 'dex', etc.
-                    that.ability[prop].score += parseInt(featureBonus[bonusProp]);
-                    that.ability[prop].max += parseInt(featureBonus[bonusProp]);
-                    that.ability[prop].min += parseInt(featureBonus[bonusProp]);
+                    bonusArray = featureBonus[bonusProp].split(', ');   // primarily for human "1, 1, 1, 1, 1, 1" becomes an array
+                    that.ability[prop].score += parseInt(bonusArray[ind]);
+                    that.ability[prop].max += parseInt(bonusArray[ind]);
+                    that.ability[prop].min += parseInt(bonusArray[ind]);
                     that.calculateModifiers(prop);
                 } else if (prop === 'armor' || prop === 'weapons') {
                     var allResults = '';
                     if (prop === 'armor') {
-                        allResults = 'All armor';
+                        allResults = 'All Armor';
                     } else if (prop === 'weapons') {
-                        allResults = 'martial weapons';
+                        allResults = 'Martial Weapons';
                     }
                     if (that[prop] && that[prop] !== 'None') {
                         if (that[prop].indexOf(allResults) === -1) {
@@ -234,8 +295,13 @@ charGenService.factory('charGenFactory', function() {
                     that[prop].sort();
                     that[prop] = that[prop].join(', ')
                 } else if (prop === 'skills') {
-                    that.updateSkillProficiency(featureBonus[prop], true);
-                } /*else if (prop === 'languages') {    // taken care of by determineRace
+                    that.updateSkillProficiency(featureBonus[prop], true, true);
+                } else if (prop === 'spellcasting') {
+                    that.classObj.spellcasting = {};
+                    that.classObj.spellcasting.spellAbility = featureBonus[prop];    //ABILITY_MAPPER[featureBonus[prop]];
+                    that.handleSpellcasting();
+                }
+                /*else if (prop === 'languages') {    // taken care of by determineRace
                     that.defaultLanguages = featureBonus[prop]; // string
                     that.languages = featureBonus[prop].split(', ');
                     if (that.selectedLanguages) {
@@ -251,13 +317,19 @@ charGenService.factory('charGenFactory', function() {
             });
         }
     };
+    Character.prototype.determineLevelBonus = function(level) {
+        var index = level - 1,
+            PROFICIENCY_ARRAY = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],
+            ABILITY_BONUS_ARRAY = [0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 8, 0, 0, 10, 0];
+        this.profBonus = PROFICIENCY_ARRAY[index];
+        this.ability.bonusPoints = ABILITY_BONUS_ARRAY[index];
+    };
     Character.prototype.determineRace = function() {    // change abilityObj name
         if (!this.raceObj) {
             return;
         }
         this.speed = parseInt(this.raceObj.speed_value);
         this.size = this.raceObj.size_value;
-
         this.defaultLanguages = this.raceObj.languages; // string
         this.languages = this.defaultLanguages.split(', ');
         if (this.selectedLanguages) {
@@ -270,37 +342,50 @@ charGenService.factory('charGenFactory', function() {
         this.languages.sort();
         this.languages = this.languages.join(', ');
     };
+    Character.prototype.handleHitPoints = function() {
+        var hpPerLevel;
+        if (this.classObj) {
+            hpPerLevel = Math.ceil(((parseInt(this.classObj.hit_dice))+1)/2);   // ex: if HD=10, then hpPerLevel is 6
+            this.hitPoints = parseInt(this.classObj.hit_dice) + this.ability.con.mod;
+            if (this.level > 1) {
+                for (var i=1; i<this.level; i++) {
+                    this.hitPoints += hpPerLevel + this.ability.con.mod;
+                }
+            }
+        }
+    };
+    Character.prototype.determineClass = function() {    // handles hp and saving throws
+        this.handleHitPoints();
+        this.savingThrows = this.classObj.saving_throw_code;   // e.g. "wis, cha"
+        this.initiative = this.ability.dex.mod;
+        this.armorClass = 10 + this.ability.dex.mod;
+        this.numSkillsLeft = parseInt(this.classObj.num_skills);
+    };
+    // Handles combining background and tool skills
+    Character.prototype.handleTools = function() {   // TODO: Refactor
+        var classTools, backgroundTools;
+        this.tools = [];
+        if (this.classObj && this.classObj.tools.indexOf('None') === -1) {
+            classTools = this.classObj.tools.split(', ');
+            this.tools = this.tools.concat(classTools);
+        }
+        if (this.background && this.background.tools) { // background tools can be blank in the database
+            backgroundTools = this.background.tools.split(', ');
+            this.tools = this.tools.concat(backgroundTools);
+        }
+        this.tools = $.unique(this.tools);  // remove potential duplicates
+        this.tools.sort();
+        this.tools = this.tools.join(', '); // return to a string
+    };
+    Character.prototype.prefillCharacter = function(storedCharacter) {
+        for (var prop in storedCharacter) {
+            if (storedCharacter.hasOwnProperty(prop)) {
+                this[prop] = storedCharacter[prop];
+            }
+        }
+    };
 
     var character = new Character();
-    /*var character = {
-        //level: 14,  // 1
-        name: null,
-        raceObj: null,
-        classObj: null, // contains subclasses property
-        background: null,   // & background.skills
-        selectedSkills: [],
-        skills: null,
-        languages: null,
-        numLanguages: 0,
-        //alignment: null,
-        armorClass: null,
-        attackMod: null,
-        savingThrows: null,
-        hitPoints: null,
-        classFeatures: [],
-        classFeatureIds: [],
-        racialTraits: [],
-        racialTraitIds: [],
-        speed: null,
-        initiative: null,
-        armor: null,
-        weapons: null,
-        tools: null,
-        size: null,
-        profBonus: 0
-    };*/
-    var copy = angular.copy(character);
-
     character.ability = {
         str: {
             score: 10,
@@ -356,71 +441,75 @@ charGenService.factory('charGenFactory', function() {
             min: 8,
             max: 15
         },
-        bonusAbility: null,
+        bonusPoints: 0, // for Ability Score Improvement
+        bonusPointsLeftArr: [],
         pointsLeft: 15  // 27 points to spend with all 8s
     };
+    var newCharacter = angular.copy(character); // for creating new character
+
+    function returnHttpProp(path) {
+        return $http({
+            url: window.location.pathname + path,
+            method: "GET",
+            cache: true
+        });
+    }
     return {
         getNewCharacter: function(level) {
             var charLevel = level ? level : 1;
+            character = angular.copy(newCharacter); // resets character
             character.level = charLevel;
-            character.profBonus = this.determineProficiencyBonus(charLevel);
+            character.calculateModifiers(); // recalculate ability modifiers
+            character.determineLevelBonus(charLevel);
             return character;
         },
-        resetCharacter: function() {    // without changing ability scores
+        /*resetCharacter: function() {    // without changing ability scores, classObj, name, profBonus, level, or skills
             var charLevel = character.level,
                 charAbilities = character.ability,
                 profBonus = character.profBonus,
                 skills = character.skills,
-                name = character.name;
+                name = character.name,
+                raceObj = character.raceObj,
+                classObj = character.classObj;
             character = angular.copy(copy);
             character.level = charLevel;
             character.ability = charAbilities;
             character.profBonus = profBonus;
             character.skills = skills;
             character.name = name;
+            character.raceObj = raceObj;
+            character.classObj = classObj;
             return character;
+        },*/
+        returnStoredCharacter: function() {
+            return localStorageService.get('character');
         },
-        determineClass: function() {    // handles hp and saving throws
-            character.hitPoints = parseInt(character.classObj.hit_dice) + character.ability.con.mod;
-            character.savingThrows = character.classObj.saving_throw_code;   // e.g. "wis, cha"
-            character.initiative = character.ability.dex.mod;
-            character.armorClass = 10 + character.ability.dex.mod;
-            character.numSkillsLeft = parseInt(character.classObj.num_skills);
-            return character;
+        storeCharacter: function() {
+            localStorageService.set('character', JSON.stringify(character));
         },
-        determineProficiencyBonus: function(level) {
-            var index = level - 1,
-                PROFICIENCY_ARRAY = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6];
-            return PROFICIENCY_ARRAY[index];
+        checkIfLoggedIn: function() {
+            return $http.get('user/checkIfLoggedIn');
         },
-        // Handles combining background and tool skills
-        handleTools: function() {   // TODO: Refactor
-            var classTools, backgroundTools;
-            character.tools = [];
-            if (character.classObj && character.classObj.tools.indexOf('None') === -1) {
-                classTools = character.classObj.tools.split(', ');
-                character.tools = character.tools.concat(classTools);
-            }
-            if (character.background && character.background.tools) { // background tools can be blank in the database
-                backgroundTools = character.background.tools.split(', ');
-                character.tools = character.tools.concat(backgroundTools);
-            }
-            character.tools = $.unique(character.tools);  // remove potential duplicates
-            character.tools.sort();
-            character.tools = character.tools.join(', '); // return to a string
-            /*$scope.character.tools = $scope.character.background.skills.split(', ');
-             if ($scope.selectedSkills) {
-             for (var i=0; i<$scope.selectedSkills.length; i++) {
-             if ($scope.character.background.skills.indexOf($scope.selectedSkills[i]) === -1) {
-             $scope.character.skills.push($scope.selectedSkills[i]);
-             } else {
-             $scope.selectedSkills.splice(i, 1);
-             }
-             }
-             }
-             $scope.character.skills.sort();
-             $scope.character.skills = $scope.character.skills.join(', ');*/
-            return character;
+        getLanguages: function() {
+            return returnHttpProp('/json_get_languages');
+        },
+        getRaces: function() {
+            return returnHttpProp('/json_get_races');
+        },
+        getBackgrounds: function() {
+            return returnHttpProp('/json_get_backgrounds');
+        },
+        getClasses: function() {
+            return returnHttpProp('/json_get_classes');
+        },
+        saveCharacter: function() {
+            var saveCharacterUrl = location.pathname.replace('character_generator', 'user/saveCharacter');
+            return $http({
+                method: 'POST',
+                url: saveCharacterUrl,
+                data: {'character': character},
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'}  // needed for php since default is application/json
+            });
         }
     };
 });

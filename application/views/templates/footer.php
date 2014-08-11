@@ -66,13 +66,16 @@
     echo '<script src="' . $base_url . '/assets/js/vendor/bootstrap.min.js"></script>';
     //echo '<script src="' . $base_url . '/assets/js/vendor/bootstrap-modalmanager.js"></script>';
     //echo '<script src="' . $base_url . '/assets/js/vendor/bootstrap-modal.js"></script>';
-    echo '<script src="' . $base_url . '/assets/js/vendor/angular-ui/modal.js"></script>';  // needs to come after bootstrap
+    echo '<script src="' . $base_url . '/assets/js/vendor/bootbox.min.js"></script>';
     //<script src="js/vendor/bootstrap.min.js"></script>
-    echo '<script src="' . $base_url . '/assets/js/controllers/userCtrl.js"></script>';
-    if($title == "Character Generator" || $title == "Level Up") {
+    if($type == "character_generator") {
+        echo '<script src="' . $base_url . '/assets/js/vendor/angular-ui/modal.js"></script>';  // needs to come after bootstrap
+        echo '<script src="' . $base_url . '/assets/js/services/angular-local-storage.js"></script>';
         echo '<script src="' . $base_url . '/assets/js/services/character_generator.js"></script>';
         echo '<script src="' . $base_url . '/assets/js/directives/directive.js"></script>';
         echo '<script src="' . $base_url . '/assets/js/controllers/controller.js"></script>';
+    } else if ($type == "user") {
+        echo '<script src="' . $base_url . '/assets/js/controllers/userCtrl.js"></script>';
     }
 ?>
 <script type="text/javascript">

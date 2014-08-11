@@ -18,11 +18,12 @@
                 <li <?php if ($this->uri->uri_string() == 'backgrounds') echo 'class="active"'; ?>><?php echo anchor('backgrounds', 'Backgrounds'); ?></li>
                 <li <?php if ($this->uri->uri_string() == 'feats') echo 'class="active"'; ?>><?php echo anchor('feats', 'Feats'); ?></li>
                 <li <?php if ($this->uri->uri_string() == 'equipment') echo 'class="active"'; ?>><?php echo anchor('equipment', 'Equipment'); ?></li>
+                <li <?php if ($this->uri->uri_string() == 'spells') echo 'class="active"'; ?>><?php echo anchor('spells', 'Spells'); ?></li>
                 <li <?php if ($this->uri->uri_string() == 'character_generator') echo 'class="active"'; ?>><?php echo anchor('character_generator', 'Character Generator'); ?></li>
             </ul> <!-- end sidebar -->
         </aside>
     </div>	<!-- ends the sidebarmenu div -->
     <div id="subwrap" class="col-md-9">
         <div class="page-header">
-            <?php echo '<h2>' . $title . '</h2>'; ?>
+            <?php echo '<h2 class="text-capitalize">' . $title . '</h2>'; ?>
         </div>

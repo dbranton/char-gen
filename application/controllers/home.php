@@ -8,7 +8,7 @@ class Home extends CI_Controller {
         $this->load->view('index');
         $this->load->view('footer');*/
 
-        $data['main_content'] = 'index';
+        $data['main_content'] = 'pages/home';
         $this->load->view('template', $data);
     }
 }

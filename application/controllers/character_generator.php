@@ -9,6 +9,7 @@ class Character_generator extends CI_Controller {
         $this->load->library('user_agent');
         $data['mobile'] = $this->agent->is_mobile();
         $data['title'] = 'Character Generator';
+        $data['type'] = 'character_generator';
         $data['main_content'] = 'pages/character_generator_view';  // races view works the same for classes
         $this->load->view('template', $data);
     }

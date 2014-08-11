@@ -7,24 +7,10 @@
             <div class="col-md-5">
                 <input type="text" class="form-control" ng-model="searchText" placeholder="Search..." />
                 <div class="list-group">
-                    <a ng-repeat="race in subvalues | filter: searchText" ng-click="showDescription(this, race)" class="list-group-item" ng-class="{true:'active', false:''}[$index==selectedIndex]" href="">
+                    <a ng-repeat="race in races | filter: searchText" ng-click="showDescription(this)" class="list-group-item" ng-class="{true:'active', false:''}[$index==selectedIndex]" href="">
                         {{race.subrace.name}}
                     </a>
                 </div>
-                <!--<accordion close-others="false">
-                    <accordion-group heading="{{value.name}}" ng-repeat="value in values">
-                        <ul class="selection dropdown-menu">
-                            <li ng-repeat="subrace in value.subraces" ng-class="{true:'active', false:''}[$index==selectedIndex]" ng-click="showDescription(this, value, subrace)">
-                                <a href="">{{subrace.name}}</a>
-                            </li>
-                        </ul>
-                    </accordion-group>
-                </accordion>-->
-                <!--<ul class="selection">
-                    <li class="ui-widget-content" ng-repeat="value in values" ng-click="showDescription(this)">
-                        {{value.name}}
-                    </li>
-                </ul>-->
             </div>	<!-- end span -->
             <div class="col-md-7">
                 <h3>{{featureType}}</h3>
@@ -39,13 +25,13 @@
                     <dd>{{languages}}</dd>-->
                     <div ng-repeat="trait in traits">
                         <dt>{{trait.name}}</dt>
-                        <dd>{{trait.benefit}}</dd>
+                        <dd ng-bind-html="trait.benefit"></dd>
                     </div>
                 </dl>
             </div> <!-- end span -->
         </div>
     </div>
     <div class="modal-footer">
-        <button ng-click="done()" class="btn btn-primary">Done</button>
+        <button ng-click="done()" ng-disabled="disabled" class="btn btn-primary">Done</button>
         <button ng-click="close()" class="btn btn-default">Cancel</button>
     </div>

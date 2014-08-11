@@ -92,7 +92,6 @@ textarea {
 /* ==========================================================================
    Author's custom styles
    ========================================================================== */
-
 body {
     padding-top: 50px; /* same as height of fixed header */
 }
@@ -118,6 +117,11 @@ header a h1 {
     height: 130px;
     width: 500px;
     text-indent: -9999px;
+}
+
+.row {
+    margin-left: 0;
+    margin-right: 0;
 }
 
 /*
@@ -180,9 +184,17 @@ dl dt:after {
     overflow: hidden; /*auto;*/
 }
 
+.modal-dialog.modal-sm .modal-body, .bootbox .modal-body {
+    height: auto;
+}
+
 .modal-body [class*=col-md] {
-    max-height: 400px;
+    max-height: 380px; /*400px;*/
     overflow-y: auto;
+}
+
+.modal-body .tab-content [class*=col-md] {
+    max-height: 338px; /* account for tabs */
 }
 
 .form-horizontal .text {
@@ -312,6 +324,15 @@ input.ability {
    Theses examples override the primary ('mobile first') styles.
    Modify as content requires.
    ========================================================================== */
+@media only screen and (min-width: 980px) {
+    #subwrap {
+        margin-left: 27%; /* 3/12 + offset */
+        min-height: 400px;
+    }
+    #sidebarmenu aside {
+        position: fixed;
+    }
+}
 
 @media only screen and (max-width: 979px) {
     /* Style adjustments for viewports that meet the condition */

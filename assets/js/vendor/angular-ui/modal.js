@@ -63,7 +63,8 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
         replace: true,
         template: "<div class=\"modal-backdrop\" ng-class=\"{in: animate}\" ng-style=\"{'z-index': 1040 + index*10}\"></div>",
         //templateUrl: 'template/modal/backdrop.html',
-        link: function (scope) {
+        link: function (scope, element, attrs) {
+            scope.backdropClass = attrs.backdropClass || '';
 
             scope.animate = false;
 
@@ -84,19 +85,31 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
         },
         replace: true,
         transclude: true,
-        template: "<div tabindex=\"-1\" class=\"modal {{ windowClass }}\" ng-class=\"{in: animate}\" ng-style=\"{'z-index': 1050 + index*10, display: 'block'}\" ng-click=\"close($event)\">\n" +
-            "    <div class=\"modal-dialog\"><div class=\"modal-content\" ng-transclude></div></div>\n" +
-            "</div>",
+        template: '<div tabindex="-1" role="dialog" class="modal fade" ng-class="{in: animate}" ng-style="{\'z-index\': 1050 + index*10, display: \'block\'}" ng-click="close($event)">' +
+            '<div class="modal-dialog" ng-class="{\'modal-sm\': size == \'sm\', \'modal-lg\': size == \'lg\'}"><div class="modal-content" ng-transclude></div></div>' +
+            '</div>',
         //templateUrl: 'raceModal.html',
         //templateUrl: 'template/modal/window.html',
         link: function (scope, element, attrs) {
-            scope.windowClass = attrs.windowClass || '';
+            //scope.windowClass = attrs.windowClass || '';
+            element.addClass(attrs.windowClass || '');
+            scope.size = attrs.size;
 
             $timeout(function () {
-                // trigger CSS transitions
-                scope.animate = true;
-                // focus a freshly-opened modal
+              // trigger CSS transitions
+              scope.animate = true;
+
+              /**
+               * Auto-focusing of a freshly-opened modal element causes any child elements
+               * with the autofocus attribute to loose focus. This is an issue on touch
+               * based devices which will show and then hide the onscreen keyboard.
+               * Attempts to refocus the autofocus element via JavaScript will not reopen
+               * the onscreen keyboard. Fixed by updated the focusing logic to only autofocus
+               * the modal element if the modal does not contain an autofocus element.
+               */
+              if (!element[0].querySelectorAll('[autofocus]').length) {
                 element[0].focus();
+              }
             });
 
             scope.close = function (evt) {
@@ -182,7 +195,7 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
                 });
             } else {
                 // Ensure this call is async
-                $timeout(afterAnimating, 0);
+                $timeout(afterAnimating);
             }
 
             function afterAnimating() {
@@ -204,8 +217,9 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
             if (evt.which === 27) {
                 modal = openedWindows.top();
                 if (modal && modal.value.keyboard) {
+                    evt.preventDefault();
                     $rootScope.$apply(function () {
-                        $modalStack.dismiss(modal.key);
+                        $modalStack.dismiss(modal.key, 'escape key press');
                     });
                 }
             }
@@ -226,15 +240,20 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
             if (currBackdropIndex >= 0 && !backdropDomEl) {
                 backdropScope = $rootScope.$new(true);
                 backdropScope.index = currBackdropIndex;
-                backdropDomEl = $compile('<div modal-backdrop></div>')(backdropScope);
+                var angularBackgroundDomEl = angular.element('<div modal-backdrop></div>');
+                angularBackgroundDomEl.attr('backdrop-class', modal.backdropClass);
+                backdropDomEl = $compile(angularBackgroundDomEl)(backdropScope);
                 body.append(backdropDomEl);
             }
 
             var angularDomEl = angular.element('<div modal-window></div>');
-            angularDomEl.attr('window-class', modal.windowClass);
-            angularDomEl.attr('index', openedWindows.length() - 1);
-            angularDomEl.attr('animate', 'animate');
-            angularDomEl.html(modal.content);
+            angularDomEl.attr({
+                'template-url': modal.windowTemplateUrl,
+                'window-class': modal.windowClass,
+                'size': modal.size,
+                'index': openedWindows.length() - 1,
+                'animate': 'animate'
+            }).html(modal.content);
 
             var modalDomEl = $compile(angularDomEl)(modal.scope);
             openedWindows.top().value.modalDomEl = modalDomEl;
@@ -243,17 +262,17 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
         };
 
         $modalStack.close = function (modalInstance, result) {
-            var modalWindow = openedWindows.get(modalInstance).value;
+            var modalWindow = openedWindows.get(modalInstance);
             if (modalWindow) {
-                modalWindow.deferred.resolve(result);
+                modalWindow.value.deferred.resolve(result);
                 removeModalWindow(modalInstance);
             }
         };
 
         $modalStack.dismiss = function (modalInstance, reason) {
-            var modalWindow = openedWindows.get(modalInstance).value;
+            var modalWindow = openedWindows.get(modalInstance);
             if (modalWindow) {
-                modalWindow.deferred.reject(reason);
+                modalWindow.value.deferred.reject(reason);
                 removeModalWindow(modalInstance);
             }
         };
@@ -287,14 +306,15 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
 
                     function getTemplatePromise(options) {
                         return options.template ? $q.when(options.template) :
-                            $http.get(options.templateUrl, {cache: $templateCache}).then(function (result) {
+                            $http.get(angular.isFunction(options.templateUrl) ? (options.templateUrl)() : options.templateUrl,
+                                {cache: $templateCache}).then(function (result) {
                                 return result.data;
                             });
                     }
 
                     function getResolvePromises(resolves) {
                         var promisesArr = [];
-                        angular.forEach(resolves, function (value, key) {
+                        angular.forEach(resolves, function (value) {
                             if (angular.isFunction(value) || angular.isArray(value)) {
                                 promisesArr.push($q.when($injector.invoke(value)));
                             }
@@ -350,6 +370,9 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
                                 });
 
                                 ctrlInstance = $controller(modalOptions.controller, ctrlLocals);
+                                if (modalOptions.controller) {
+                                    modalScope[modalOptions.controllerAs] = ctrlInstance;
+                                }
                             }
 
                             $modalStack.open(modalInstance, {
@@ -358,7 +381,10 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
                                 content: tplAndVars[0],
                                 backdrop: modalOptions.backdrop,
                                 keyboard: modalOptions.keyboard,
-                                windowClass: modalOptions.windowClass
+                                backdropClass: modalOptions.backdropClass,
+                                windowClass: modalOptions.windowClass,
+                                windowTemplateUrl: modalOptions.windowTemplateUrl,
+                                size: modalOptions.size
                             });
 
                         }, function resolveError(reason) {
@@ -380,7 +406,7 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
 
         return $modalProvider;
     });
-angular.module("template/modal/backdrop.html", []).run(["$templateCache", function($templateCache) {
+/*angular.module("template/modal/backdrop.html", []).run(["$templateCache", function($templateCache) {
     $templateCache.put("template/modal/backdrop.html",
         "<div class=\"modal-backdrop\" ng-class=\"{in: animate}\" ng-style=\"{'z-index': 1040 + index*10}\"></div>");
 }]);
@@ -390,4 +416,4 @@ angular.module("template/modal/window.html", []).run(["$templateCache", function
         "<div tabindex=\"-1\" class=\"modal {{ windowClass }}\" ng-class=\"{in: animate}\" ng-style=\"{'z-index': 1050 + index*10, display: 'block'}\" ng-click=\"close($event)\">\n" +
             "    <div class=\"modal-dialog\"><div class=\"modal-content\" ng-transclude></div></div>\n" +
             "</div>");
-}]);
+}]);*/

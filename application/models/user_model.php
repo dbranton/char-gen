@@ -49,14 +49,14 @@ class User_model extends CI_Model {
         $level = $character->level;
         $raceName = $character->raceObj->subrace->name; // ex: Mountain Dwarf
         $racialTraitIds = '';
-        foreach ($character->racialTraits as $racialTrait) {
+        foreach ($character->raceObj->racialTraits as $racialTrait) {
             if ($racialTraitIds != '') {
                 $racialTraitIds .= ', ';
             }
             $racialTraitIds .= $racialTrait->id;
         }
         $classFeatureIds = '';
-        foreach ($character->classFeatures as $classFeature) {
+        foreach ($character->classObj->classFeatures as $classFeature) {
             if ($classFeatureIds != '') {
                 $classFeatureIds .= ', ';
             }
@@ -68,6 +68,9 @@ class User_model extends CI_Model {
         $languages = $character->languages;
         $className = $character->classObj->name;
         $subclassName = isset($character->classObj->subclassObj) ? $character->classObj->subclassObj->name : '';
+        $spellAbility = isset($character->classObj->spellcasting) ? $character->classObj->spellcasting->spellAbility : '';
+        $spellSaveDC = isset($character->classObj->spellcasting) ? $character->classObj->spellcasting->spellSaveDC : 0;
+        $spellAttkBonus = isset($character->classObj->spellcasting) ? $character->classObj->spellcasting->spellAttkBonus : 0;
         $hitDice = intval($character->classObj->hit_dice);
         $hitPoints = $character->hitPoints;
         $profBonus = $character->profBonus;
@@ -155,6 +158,7 @@ class User_model extends CI_Model {
         $initiative = $character->initiative;
         $armorClass = $character->armorClass;
         $passivePerception = $character->passivePerception;
+        $cantrips = isset($character->classObj->selectedCantrips) ? implode(', ', $character->classObj->selectedCantrips) : '';
         /*$racialTraitIds = explode(',', $this->input->post('racialTraitsName'));   // ex: ['2','5','16']
         $racialTraits = array();
         for($i=0, $size=count($racialTraitIds); $i<$size; $i++) {
@@ -182,6 +186,7 @@ class User_model extends CI_Model {
             'class' => $className,
             'pseudo_class' => $subclassName,
             'class_feature_ids' => $classFeatureIds,
+            'cantrips' => $cantrips,
             'level' => $level,
             'skills' => $skillProf,
             'hit_points' => $hitPoints,
@@ -232,13 +237,16 @@ class User_model extends CI_Model {
             'stealth' => $stealth,
             'survival' => $survival,
             'senses' => $passivePerception,
+            'spell_ability' => $spellAbility,
+            'spell_save_dc' => $spellSaveDC,
+            'spell_attk_bonus' => $spellAttkBonus,
             'user_id' => $user_id,
             'date_added' => date("m/d/Y")
         );
-        //return $data;
+        //return $data;   // for testing only
         // TODO: uncomment later
         $this->db->insert('character_table', $data);
-        //$this->db->insert_batch('character_features', $racialTraits);
+        //$this->db->insert_batch('character_features', $racialTraits); // no longer needed
     }
 
     public function get_characters() {
@@ -252,6 +260,7 @@ class User_model extends CI_Model {
             $characters = array();
             foreach ($query->result() as $row) {
                 $character['id'] = $row->id;
+                //$character['user_id'] = $row->user_id;
                 $character['name'] = $row->name;
                 $character['level'] = $row->level;
                 $character['race'] = $row->race;
@@ -260,7 +269,7 @@ class User_model extends CI_Model {
             }
             return $characters;
         } else {
-            echo 'No Characters';
+            return array();  // no characters
         }
     }
 
@@ -270,18 +279,22 @@ class User_model extends CI_Model {
             " FROM character_table" .
             " WHERE character_table.user_id = '" . $userId . "' AND character_table.id = '" . $characterId . "'";
         $query = $this->db->query($sql);
+        $ability_mapper = array('str'=>'Strength', 'dex'=>'Dexterity', 'con'=>'Constitution', 'int'=>'Intelligence', 'wis'=>'Wisdom', 'cha'=>'Charisma');
         if ($query->num_rows() > 0) {
             $row = $query->row();
             $character['name'] = $row->name;
             $character['level'] = $row->level;
             $character['race'] = $row->race;
-            $character['class'] = $row->class;
+            $character['class'] = $row->pseudo_class ? $row->class . ' (' . $row->pseudo_class . ')' : $row->class;
             $character['armor_class'] = $row->armor_class;
             $character['hit_points'] = $row->hit_points;
             $character['hit_dice'] = $row->hit_dice;
             $character['initiative'] = $row->initiative >= 0 ? '+' . $row->initiative : $row->initiative;
             $character['proficiency_bonus'] = $row->proficiency_bonus;
-            $character['proficiencies'] = $row->armor_prof . ', ' . $row->weapon_prof . ', ' . $row->tool_prof;
+            $character['proficiencies'] = $row->armor_prof != 'None' ? $row->armor_prof . ', ' : '';
+            $character['proficiencies'] .= $row->weapon_prof;
+            $toolProf = $row->tool_prof != 'None' ? ', ' . $row->tool_prof : '';
+            $character['proficiencies'] .= $toolProf;
             $character['speed'] = $row->speed;
             $character['languages'] = $row->languages;
             $character['strength'] = $row->strength;
@@ -323,15 +336,24 @@ class User_model extends CI_Model {
             $character['survival'] = $row->survival >= 0 ? '+' . $row->survival : $row->survival;
             $character['senses'] = $row->senses;
             $character['traits'] = $this->_getRacialTraits($row->racial_trait_ids);
-            $character['features'] = $this->_getClassFeatures($row->class_feature_ids);
+            $character['features'] = $this->_getClassFeatures($row->class_feature_ids, $row->cantrips);
             $character['background'] = $this->_getBackground($row->background);
+            $character['spellcasting'] = $ability_mapper[$row->spell_ability];
+            $character['spell_save_dc'] = $row->spell_save_dc;
+            $character['spell_attk_bonus'] = $row->spell_attk_bonus >= 0 ? '+' . $row->spell_attk_bonus : $row->spell_attk_bonus;
+            $character['cantrips'] = $row->cantrips;
             return $character;
         } else {
             // TODO: handle error
         }
     }
 
+    public function delete_character($characterId) {
+        $this->db->delete('character_table', array('id' => $characterId));  // DELETE FROM character_table WHERE id = $characterId
+    }
+
     private function _getRacialTraits($racialTraitIds) {
+        $racialTraitIds = !empty($racialTraitIds) ? $racialTraitIds : "''";
         $sql = "SELECT race_features.*" .
             " FROM race_features" .
             " WHERE race_features.id IN (" . $racialTraitIds . ")";
@@ -358,7 +380,7 @@ class User_model extends CI_Model {
         }
     }
 
-    private function _getClassFeatures($classFeatureIds) {
+    private function _getClassFeatures($classFeatureIds, $cantrips) {
         $sql = "SELECT class_features.*" .
             " FROM class_features" .
             " WHERE class_features.id IN (" . $classFeatureIds . ")" .
@@ -368,58 +390,16 @@ class User_model extends CI_Model {
             $classFeatures = array();
             foreach ($query->result() as $row) {
                 $classFeature['name'] = $this->_getFeatureName($row->feature_id);
-                $classFeature['benefit'] = $row->benefit;
+                if ($row->type == 'cantrips') {
+                    $classFeature['benefit'] = 'You know the following cantrips, and can cast them at will: ' . $cantrips;
+                } else {
+                    $classFeature['benefit'] = $row->benefit;
+                }
                 array_push($classFeatures, $classFeature);
             }
             return $classFeatures;
         }
     }
-
-    /*private function _getRacialTraits($characterId) {
-        $sql = "SELECT features_table.*" .
-            " FROM features_table" .
-            " JOIN race_features" .
-            " ON race_features.feature_id = features_table.id" .
-            " JOIN race_table" .
-            " ON race_table.readable_id = race_features.race_id" .
-            " JOIN character_table" .
-            " ON character_table.race = race_table.subrace" .
-            " WHERE character_table.id = '" . $characterId . "' AND (race_features.subrace_id = '' OR race_features.subrace_id = race_table.id)" .
-            " ORDER BY name ASC";
-        $query = $this->db->query($sql);
-        if ($query->num_rows() > 0) {
-            $racialTraits = array();
-            foreach ($query->result() as $row) {
-                $racialTrait['name'] = $row->name;
-                $racialTrait['description'] = $row->description;
-                array_push($racialTraits, $racialTrait);
-            }
-            return $racialTraits;
-        }
-    }*/
-
-    /*private function _getClassFeatures($characterId, $level) {
-        $sql = "SELECT features_table.*" .
-            " FROM features_table" .
-            " JOIN class_features" .
-            " ON class_features.feature_id = features_table.id" .
-            " JOIN class_table" .
-            " ON class_table.id = class_features.class_id" .
-            " JOIN character_table" .
-            " ON character_table.class = class_table.name" .
-            " WHERE character_table.id = '" . $characterId . "' AND class_features.level <= '" . $level . "'" .
-            " ORDER BY name ASC";
-        $query = $this->db->query($sql);
-        if ($query->num_rows() > 0) {
-            $classFeatures = array();
-            foreach ($query->result() as $row) {
-                $classFeature['name'] = $row->name;
-                $classFeature['benefit'] = $row->benefit;
-                array_push($classFeatures, $classFeature);
-            }
-            return $classFeatures;
-        }
-    }*/
 
     private function _getBackground($backgroundName) {
         $sql = "SELECT background_table.*" .

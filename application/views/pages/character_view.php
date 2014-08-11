@@ -86,6 +86,31 @@
             <li>Survival <?php echo $character['survival']; ?></li>
         </ul>
     </fieldset>
+    <?php if ($character['spellcasting']): ?>
+    <fieldset>
+        <legend class="small-legend">Spellcasting</legend>
+        <table class="table table-condensed">
+            <tr>
+                <th>Spellcasting Ability: </th>
+                <td><?php echo $character['spellcasting']; ?></td>
+            </tr>
+            <tr>
+                <th>Spell Save DC: </th>
+                <td><?php echo $character['spell_save_dc']; ?></td>
+            </tr>
+            <tr>
+                <th>Spell Attack Bonus: </th>
+                <td><?php echo $character['spell_attk_bonus']; ?></td>
+            </tr>
+            <tr>
+                <th>Cantrips: </th>
+                <td><?php echo $character['cantrips']; ?></td>
+            </tr>
+        </table>
+    </fieldset>
+    <?php endif; ?>
+</div>
+<div class="col-md-6">
     <?php
     if (is_array($character['traits'])) {
         echo '<h3>Racial Traits</h3>';
@@ -93,10 +118,7 @@
         foreach ($character['traits'] as $trait) {
             echo '<p><b>' . $trait['name'] . '</b>: ' . $trait['description'] . '</p>';
         }
-    }?>
-</div>
-<div class="col-md-6">
-    <?php
+    }
     if (is_array($character['features'])) {
         echo '<h3>Class Features</h3>';
         //var_dump($character['features']);

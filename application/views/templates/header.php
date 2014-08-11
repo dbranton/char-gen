@@ -16,11 +16,12 @@
     <!--<link rel="stylesheet" href="<?php //echo $base_url; ?>/assets/css/bootstrap-modal.css" />-->
     <!--<link rel="stylesheet" href="<?php //echo $base_url; ?>/assets/css/bootstrap-responsive.css" />-->
     <!--<link rel="stylesheet" href="<?php echo $base_url; ?>/assets/css/font-awesome-4.0.3/css/font-awesome.min.css">-->
-    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $base_url; ?>/assets/css/font-awesome-4.0.3/css/font-awesome.min.css" />
     <link rel="stylesheet" href="<?php echo $base_url; ?>/assets/css/style.css" />
     <?php
         if($title == "Level Up" || $title == "Character Generator") {
             echo '<link rel="stylesheet" href="' . $base_url . '/assets/js/vendor/select2-3.4.3/select2.css" />';
+            echo '<link rel="stylesheet" href="' . $base_url . '/assets/js/vendor/select2-3.4.3/select2-bootstrap.css" />';
         }
     ?>
     <script>
@@ -57,11 +58,11 @@
 
             <!-- Everything you want hidden at 940px or less, place within here -->
             <div class="navbar-collapse collapse" id="navbar-main">
-                <ul class="nav navbar-nav">
-                    <li><?php echo anchor('home', 'Home'); ?></li>
+                <!--<ul class="nav navbar-nav">
+                    <li><?php //echo anchor('home', 'Home'); ?></li>
                     <li><a href="../../../../about.php" class="topnav">About</a></li>
                     <li><a href="../../../../contact.php" class="topnav">Contact</a></li>
-                </ul>
+                </ul>-->
                 <ul class="nav navbar-nav navbar-right">
                     <?php
                     if(isset($this->session->userdata['logged_in']['username'])) {

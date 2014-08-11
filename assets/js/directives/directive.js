@@ -1,35 +1,13 @@
 angular.module('charGenDirective', [])
-    .directive('skills', function($http) {
+    .directive('skills', function() {
         return {
             restrict: 'E',
             template: '<div class="skillUI" ng-repeat="skill in character.skills">' +
                 '<label><input type="checkbox" name="skill[]" value="{{skill.name}}" ng-checked="skill.proficient" ng-disabled="skill.disabled" ng-model="skill.proficient" ng-change="selectSkill(skill)" /> <span ng-show="skill.val >= 0">+</span>{{skill.val}} {{skill.name}} ({{skill.ability}})</label>' +
                 '</div>',
             link: function(scope, element, attrs) {
-                var enabledSkills = [];
                 scope.selectSkill = function(skill) {
-                    scope.character.updateSkillScore(skill.name);
-                    if (skill.proficient) {
-                        scope.character.getProficientSkills();
-                        scope.character.selectedSkills.push(skill.name);  // add skill
-                        scope.character.selectedSkills.sort();
-                        scope.character.numSkillsLeft--;
-                        if (scope.character.numSkillsLeft === 0) {
-                            enabledSkills = [];
-                            scope.character.skills.forEach(function(skill, i, skills) {
-                                if (skill.disabled === false) {
-                                    enabledSkills.push(skill.name);   // save currently enabled skills for later
-                                }
-                            });
-                            scope.character.enableSkills(false);  // disable all skills except the checked ones
-                        }
-                    } else {
-                        scope.character.selectedSkills.splice(scope.character.selectedSkills.indexOf(skill.name), 1);   // remove skill
-                        scope.character.numSkillsLeft++;
-                        if (scope.character.numSkillsLeft === 1) {
-                            scope.character.enableSkills(enabledSkills);
-                        }
-                    }
+                    scope.character.updateSkillProficiency(skill.name, skill.proficient);
                 };
             }
         };
@@ -52,4 +30,22 @@ angular.module('charGenDirective', [])
                 });
             }
         };
+    })
+    .directive('classFeatures', function($compile) {
+        return {
+            restrict: 'A',
+            link: function(scope, elem, attrs) {
+                scope.$watch(attrs.classFeatures, function(classObj, oldClassObj) {
+                    if (classObj && (!oldClassObj || !oldClassObj.featureChoices) && angular.isArray(classObj.featureChoices) && classObj.featureChoices.length > 0) {
+                        var html = $('#featureUI').html(),
+                            el = angular.element(html),
+                            compiled = $compile(el);
+                        elem.html(el);
+                        compiled(scope);
+                    } else if (classObj && !classObj.featureChoices && oldClassObj && angular.isArray(oldClassObj.featureChoices) && oldClassObj.featureChoices.length > 0) {
+                        elem.empty();
+                    }
+                });
+            }
+        }
     });

@@ -14,24 +14,10 @@ class Races extends CI_Controller {
         $this->load->view('template', $data);
     }
 
-    public function dwarf() {
-        $race = 'Dwarf';
-        $this->_addRaceData($race);
-    }
-
-    public function elf() {
-        $race = 'Elf';
-        $this->_addRaceData($race);
-    }
-
-    public function halfling() {
-        $race = 'Halfling';
-        $this->_addRaceData($race);
-    }
-
-    public function human() {
-        $race = 'Human';
-        $this->_addRaceData($race);
+    public function raceName($class = NULL) {
+        if (!is_null($class)) {
+            $this->_addRaceData($class);
+        }
     }
 
     private function _addRaceData($race) {

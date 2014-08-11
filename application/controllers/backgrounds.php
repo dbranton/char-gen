@@ -10,7 +10,7 @@ class Backgrounds extends CI_Controller {
         $this->load->model('background_model');
         $data['backgrounds'] = $this->background_model->getBackgrounds();
         $data['title'] = 'Backgrounds';
-        $data['main_content'] = 'pages/backgrounds';
+        $data['main_content'] = 'pages/backgrounds_view';
         $this->load->view('template', $data);
     }
 }

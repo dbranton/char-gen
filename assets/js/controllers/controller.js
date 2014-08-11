@@ -19,16 +19,16 @@ charModule.run(function($rootScope) {
  * @param $modal
  */
 // TODO: refactor
-function CharGen($scope, $modal, $http, charGenFactory) {
-    var charLevel = 19;
+function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
     $scope.Math = window.Math;
-    $scope.character = charGenFactory.getNewCharacter(charLevel);
+    $scope.character = charGenFactory.getNewCharacter();    // defaults to level 1 character if user chooses not to select a level at first
 
     // Initialize variables
     $scope.racialBonus = {};
     $scope.searchText = '';
     $scope.subclasses = [];
-    $scope.opts = {
+    $scope.storedCharacter = null;
+    var opts = {
         backdrop: true,
         keyboard: true,
         backdropClick: true,
@@ -36,26 +36,40 @@ function CharGen($scope, $modal, $http, charGenFactory) {
     };
     $scope.numLanguagesLeft = 0;
 
+    charGenFactory.checkIfLoggedIn().success(function(data) {
+        $scope.isLoggedIn = JSON.parse(data);
+        $scope.isNotLoggedIn = !$scope.isLoggedIn;
+    });
+    $scope.fillInCharacter = function() {
+        $scope.storedCharacter = charGenFactory.returnStoredCharacter();
+        $scope.character.prefillCharacter($scope.storedCharacter);
+        $scope.race = $scope.character.raceObj;
+        $scope.clazz = $scope.character.classObj;
+    };
+
     $scope.saveCharacter = function() {
-        var saveCharacterUrl = location.pathname.replace('character_generator', 'user/saveCharacter');
         //var stringifiedCharacter = JSON.stringify($scope.character);
         $scope.validating = true;
         if ($scope.charGenForm.$valid) {
-            $http({
-                method: 'POST',
-                url: saveCharacterUrl,
-                data: {'character': $scope.character},
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'}  // needed for php since default is application/json
-            })
-            .success(function(data, status, headers, config) {
-                $scope.successMessage = "Character saved successfully";
-                $scope.errorMessage = null;
-                $scope.character = charGenFactory.getNewCharacter(charLevel);
-            })
-            .error(function(data, status, headers, config) {
-                $scope.successMessage = null;
-                $scope.errorMessage = data.message;
-            });
+            if ($scope.isLoggedIn) {
+                charGenFactory.saveCharacter()
+                    .success(function(data, status, headers, config) {
+                        $scope.successMessage = "Character saved successfully";
+                        $scope.errorMessage = null;
+                        $location.hash('wrap');
+                        $anchorScroll();
+                    })
+                    .error(function(data, status, headers, config) {
+                        $scope.successMessage = null;
+                        $scope.errorMessage = data.message;
+                    });
+            } else {    // not logged in, therefore save character
+                charGenFactory.storeCharacter();
+                $scope.storedCharacter = charGenFactory.returnStoredCharacter();    // update stored character
+                $scope.successMessage = "Character saved locally. Warning: you will lose your character if you clear your cache.";
+                $location.hash('wrap');
+                $anchorScroll();
+            }
         }
     };
 
@@ -65,69 +79,88 @@ function CharGen($scope, $modal, $http, charGenFactory) {
         }
     };
 
-    $scope.openDialog = function() {
-        $modal.open($scope.opts);
+    function openDialog(size) {
+        var localOpts = angular.copy(opts);
+        if (size) {
+            localOpts.size = size;
+        }
+        $modal.open(localOpts);
         //dialog.open();
+    }
+
+    $scope.openNewCharDialog = function() {
+        opts.templateUrl = 'dialog/newChar';
+        opts.controller = DialogNewCharController;
+        openDialog('sm');
     };
 
     $scope.openRaceDialog = function() {
-        $scope.opts.templateUrl = 'dialog/raceDialog'; //'raceModal.html';
-        $scope.opts.controller = DialogRaceController;
-        $scope.opts.resolve = {
+        opts.templateUrl = 'dialog/raceDialog'; //'raceModal.html';
+        opts.controller = DialogRaceController;
+        opts.resolve = {
             raceData: function() { return angular.copy($scope.raceData); }
         };
-        $scope.openDialog();
+        openDialog();
+    };
+
+    $scope.openBackgroundDialog = function() {
+        opts.templateUrl = 'dialog/background';  //'backgroundModal.html';
+        opts.controller = DialogBackgroundController;
+        opts.resolve = {
+            backgroundData: function() { return angular.copy($scope.backgroundData); }
+        };
+        openDialog();
     };
 
     $scope.openClassDialog = function() {
-        $scope.opts.templateUrl = 'dialog/classDialog'; //'classModal.html';
-        $scope.opts.controller = DialogClassController;
-        $scope.opts.resolve = {
+        opts.templateUrl = 'dialog/classDialog'; //'classModal.html';
+        opts.controller = DialogClassController;
+        opts.resolve = {
             classData: function() { return angular.copy($scope.classData); }
         };
-        $scope.openDialog();
+        openDialog();
     };
 
     $scope.openSubclassDialog = function() {
-        $scope.opts.templateUrl = 'dialog/classDialog'; //'classModal.html';
-        $scope.opts.controller = DialogSubclassController;
-        $scope.opts.resolve = {
-            subclasses: function() { return angular.copy($scope.subclasses); }
+        opts.templateUrl = 'dialog/classDialog'; //'classModal.html';
+        opts.controller = DialogSubclassController;
+        opts.resolve = {
+            subclasses: function() { return angular.copy($scope.character.classObj.subclasses); }
         };
-        $scope.openDialog();
+        openDialog();
     };
 
     $scope.openFeatureDialog = function() {
         var that = this;
         var featureName = this.selectedFeature.name;
-        $scope.opts.templateUrl = 'dialog/classDialog';
-        $scope.opts.controller = DialogFeatureController;
-        $scope.opts.resolve = {
+        opts.templateUrl = 'dialog/classDialog';
+        opts.controller = DialogFeatureController;
+        opts.resolve = {
             features: function() { return angular.copy($scope.character.classObj.featureChoices); },
             index: function() { return that.$index; },
             selectedFeatures: function() { return $scope.selectedFeatures; },
             featureName: function() { return featureName; }
         };
-        $scope.openDialog();
+        openDialog();
     };
 
     $scope.openCantripDialog = function() {
-        $scope.opts.templateUrl = 'dialog/spellDialog';
-        $scope.opts.controller = DialogCantripController;
-        $scope.opts.resolve = {
+        opts.templateUrl = 'dialog/spellDialog';
+        opts.controller = DialogCantripController;
+        opts.resolve = {
             cantrips: function() { return angular.copy($scope.character.classObj.cantrips); },
             numCantrips: function() { return $scope.character.classObj.numCantrips; }
         };
-        $scope.openDialog();
+        openDialog();
     };
 
-    $scope.openBackgroundDialog = function() {
-        $scope.opts.templateUrl = 'dialog/background';  //'backgroundModal.html';
-        $scope.opts.controller = DialogBackgroundController;
-        $scope.opts.resolve = {
-            backgroundData: function() { return angular.copy($scope.backgroundData); }
+    $scope.openSummary = function() {
+        opts.templateUrl = 'dialog/summary';
+        opts.controller = DialogSummaryController;
+        opts.resolve = {
+            character: function() { return angular.copy($scope.character); }
         };
-        $scope.openDialog();
+        openDialog('lg');
     };
 
     // Deprecated; could still be used for mobile purposes though
@@ -141,11 +174,11 @@ function CharGen($scope, $modal, $http, charGenFactory) {
     }
 
     // Watches
-    $scope.$watch('character.level', function(newValue) {
+    /*$scope.$watch('character.level', function(newValue) {
         if (!isNaN(newValue)) {
 
         }
-    });
+    });*/
     $scope.$watch('character.selectedLanguages', function(newValue, oldValue) {   // triggered whenever a language is selected
         if ((newValue || (!newValue && oldValue)) && $scope.character.raceObj) {   //(newValue || oldValue)
             // TODO: handleLanguages();
@@ -160,34 +193,15 @@ function CharGen($scope, $modal, $http, charGenFactory) {
     });
     $scope.$watch('character.raceObj.subrace.name', function(newValue) {
        if (newValue) {
-           var raceLanguages = $scope.character.raceObj.languages.split(', ');
-           //$scope.availableLanguages = [];  //LANGUAGE_LIST;  // commented out because it was clearing the language list in the ui
-           //var languageList = angular.copy(LANGUAGE_LIST);    //$scope.availableLanguages;
            var languageList = [];
            for (var i=0, ilen=LANGUAGE_LIST.length; i<ilen; i++) {
                 var language = LANGUAGE_LIST[i];
                 if ($scope.character.raceObj.languages.indexOf(language) === -1) {    // the race language is found in the race list
                     languageList.push(language);
-                    //languageList.splice(i, 1);
-                    //languageList[i] = null;
-                    //$scope.availableLanguages.splice(i, 1);
-                    //$scope.availableLanguages.push(LANGUAGE_LIST[i]);   //language
                 }
            }
            $scope.availableLanguages = languageList;
        }
-    });
-    $scope.$watch('character.ability.dex.mod', function(newValue) {
-        if (!isNaN(newValue)) {
-            $scope.character.initiative = newValue;
-            $scope.character.armorClass = 10 + newValue;
-        }
-    });
-    $scope.$watch('character.ability.con.mod', function(newValue) {
-        if (!isNaN(newValue) && $scope.character.classObj) {
-            //$scope.character.hitPoints = parseInt($scope.character.classObj.hit_dice) + newValue;   // TODO: account for higher levels
-            $scope.character.handleHitPoints();
-        }
     });
     $scope.$watch('character.numLanguages', function(newValue) {
         if (angular.isDefined(newValue)) {//} && $scope.character.background) {
@@ -203,40 +217,79 @@ function CharGen($scope, $modal, $http, charGenFactory) {
         $scope.character.modifyAbilityScore(ability, value);
     };
 
-    function returnHttpProp(path) {
-        return {
-            url: window.location.pathname + path,
-            method: "GET",
-            cache: true
-        };
-    }
-
     var LANGUAGE_LIST = [];
     $scope.init = function() {
-        $http(returnHttpProp('/json_get_languages')).success(function(data) {
+        $scope.storedCharacter = charGenFactory.returnStoredCharacter();
+        charGenFactory.getLanguages().success(function(data) {
             for (var i=0, ilen=data.length; i<ilen; i++) {
                 LANGUAGE_LIST.push(data[i].name);
             }
-            //LANGUAGE_LIST = data;
             $scope.availableLanguages = angular.copy(LANGUAGE_LIST);
-            //determineNumItems('#chosenLanguages', 0);
         });
-        $http(returnHttpProp('/json_get_races')).success(function(data) {
-            $scope.raceData = data;
+        charGenFactory.getRaces().success(function(data) {
+            //$scope.raceData = data;
+            var races = [], subraces = [],  subrace, raceObj, outerIndex = 0;
+            for (var i=0; i<data.length; i++) {
+                if (!data[i].subraces) {
+                    data[i].subraces = [];
+                    subrace = {
+                        name: data[i].name,
+                        desc: data[i].desc
+                    };
+                    data[i].subraces.push(subrace);
+                }
+                races.push(data[i]);
+            }
+            for (var j=0; j<races.length; j++) {
+                //subraces = subraces.concat(races[j].subraces);
+                for (var k=0; k<races[j].subraces.length; k++) {
+                    raceObj = angular.copy(races[j]);
+                    subraces = subraces.concat(raceObj);   // include race properties
+                    //delete subraces[k].subraces;
+                    subraces[outerIndex].subrace = races[j].subraces[k];    // include subrace properties
+                    outerIndex++;
+                }
+            }
+            $scope.raceData = subraces;
         });
-        $http(returnHttpProp('/json_get_backgrounds')).success(function(data) {
+        charGenFactory.getBackgrounds().success(function(data) {
             $scope.backgroundData = data;
         });
-        $http(returnHttpProp('/json_get_classes')).success(function(data) {
+        charGenFactory.getClasses().success(function(data) {
             $scope.classData = data;
         });
+        $scope.openNewCharDialog();
+    };
+
+    $scope.broadcastObj = function(arr, name, prop, index) {
+        var obj = {};
+        if (name) {
+            for (var i=0, ilen=arr.length; i<ilen; i++) {
+                if ((prop === 'race' && arr[i].subrace.name === name) || arr[i].name === name) { // assuming arr has a name property
+                    obj.checked = true;
+                    obj[prop] = angular.copy(arr[i]);
+                    if (!isNaN(index)) {
+                        obj.featureIndex = index;
+                    }
+                    $scope.$broadcast('handleBroadcast', obj);
+                    break;
+                }
+            }
+        }
     };
 
     $scope.$on('handleBroadcast', function(event, args) {
         var features = {};  // reset
         if (args.checked) {
-            if (!args.subclass && !args.selectedFeature) {
-                $scope.character = charGenFactory.resetCharacter();
+            /*if (!args.subclass && !args.selectedFeature) {
+                $scope.character = charGenFactory.resetCharacter();   // no longer needed
+            }*/
+            if (args.level) {
+                $scope.character = charGenFactory.getNewCharacter(args.level);
+                $scope.race = null;
+                $scope.clazz = null;
+                $scope.background = null;
+                $scope.validating = false;  // reset validation
             }
             //if (args.race && $scope.race) { // only true if user selected a different race
                 $scope.character.resetRacialBonuses();
@@ -249,7 +302,7 @@ function CharGen($scope, $modal, $http, charGenFactory) {
                 $scope.racialBonus = {};    // reset racial bonuses
                 $scope.character.raceObj = $scope.race;
                 //$scope.character.racialTraits = args.racialTraits;
-                $scope.character.raceObj.racialTraits = []; // init
+                $scope.character.raceObj.racialTraits = []; // reset
                 if ($scope.race.traits) {
                     $scope.race.traits.forEach(function(trait) {
                         if (trait.benefit_desc) {
@@ -287,12 +340,12 @@ function CharGen($scope, $modal, $http, charGenFactory) {
                 if ($scope.clazz.features) {
                     $scope.character.classObj.classFeatures = [];    // reset    //$scope.character.classFeatures = [];    // reset
                     //$scope.character.featureIds = [];  // reset
-                    $scope.subclasses = [];    // reset
+                    $scope.character.classObj.subclasses = [];    // reset
                     $scope.clazz.features.forEach(function(featureObj, idx) {
                         if (featureObj.level <= $scope.character.level) {
                             var tempBenefit = '', classFeatureId = '';
                             if (featureObj.subclasses) {
-                                $scope.subclasses = featureObj.subclasses;
+                                $scope.character.classObj.subclasses = featureObj.subclasses;
                             }
                             if (featureObj.benefit) {
                                 featureObj.benefit.forEach(function(benefitObj) {
@@ -319,7 +372,7 @@ function CharGen($scope, $modal, $http, charGenFactory) {
                                     if (subfeature.benefit) {
                                         subfeature.benefit.forEach(function(benefitObj, idx) {
                                             if (benefitObj.level <= $scope.character.level) {
-                                                classFeatureId = benefitObj.id
+                                                classFeatureId = benefitObj.id;
                                                 tempBenefit = benefitObj.description;
                                                 if (subfeature.cantrips) {
                                                     $scope.character.classObj.numCantrips = parseInt(subfeature.benefit_value.split(', ')[idx]);
@@ -338,7 +391,6 @@ function CharGen($scope, $modal, $http, charGenFactory) {
                     });
                     $scope.currentClassFeatures = $scope.character.classObj.classFeatures;
                 }
-                $scope.character = charGenFactory.handleTools();
             }
             if (args.subclass || $scope.subclass) {
                 $scope.subclass = args.subclass || $scope.subclass;
@@ -394,19 +446,15 @@ function CharGen($scope, $modal, $http, charGenFactory) {
                     }
                 });
             }
-            /*if (args.selectedCantrips || $scope.selectedCantrips) {
-                $scope.selectedCantrips = args.selectedCantrips || $scope.selectedCantrips;
-                var cantripsDesc = "You know the following spells and can cast them at will: " + $scope.selectedCantrips;
-                $scope.character.classObj.classFeatures.push(new KeyValue(-1, "Cantrips", cantripsDesc))
-            }*/
-            /*if (args.html) {
-                $scope.html = args.html;
-            }*/
             if (args.background || $scope.background) {
                 $scope.background = args.background || $scope.background;
                 $scope.character.background = $scope.background;
-                $scope.character = charGenFactory.handleTools();
             }
+            if (args.selectedCantrips) {
+                $scope.character.classObj.selectedCantrips = args.selectedCantrips.split(', ');
+            }
+
+            $scope.character.handleTools();
             $scope.character.numLanguages = $scope.character.background ? parseInt($scope.character.background.languages) : 0;
             $scope.character.calculateModifiers(); // update ability modifiers
             /*if ($scope.character.ability['int'].mod > 0) {  // needs to come after
@@ -424,34 +472,23 @@ function CharGen($scope, $modal, $http, charGenFactory) {
     });
 }
 
+function DialogNewCharController($scope, $modalInstance) {
+    $scope.character = {
+        level: 1
+    };
+    $scope.done = function() {
+        var level = parseInt($scope.character.level);
+        $scope.$emit('handleEmit', {level: level, checked: true});
+        $modalInstance.close();
+    };
+    $scope.close = function() {
+        $modalInstance.dismiss('cancel');
+    };
+}
+
 function DialogRaceController($scope, $modalInstance, raceData) {
     $scope.title = 'Select Race';
-
-    var data = raceData;
-    $scope.values = [];     // clears the data
-    $scope.subvalues = [];
-    var subrace, raceObj, outerIndex = 0;
-    for (var i=0; i<data.length; i++) {
-        if (!data[i].subraces) {
-            data[i].subraces = [];
-            subrace = {
-                name: data[i].name,
-                desc: data[i].desc
-            };
-            data[i].subraces.push(subrace);
-        }
-        $scope.values.push(data[i]);
-    }
-    for (var j=0; j<$scope.values.length; j++) {
-        //$scope.subvalues = $scope.subvalues.concat($scope.values[j].subraces);
-        for (var k=0; k<$scope.values[j].subraces.length; k++) {
-            raceObj = angular.copy($scope.values[j]);
-            $scope.subvalues = $scope.subvalues.concat(raceObj);   // include race properties
-            //delete $scope.subvalues[k].subraces;
-            $scope.subvalues[outerIndex].subrace = $scope.values[j].subraces[k];    // include subrace properties
-            outerIndex++;
-        }
-    }
+    $scope.races = raceData;
     $scope.description = 'Click a list item to view more information';
     $scope.featureType = '';
     $scope.features = [];
@@ -468,8 +505,8 @@ function DialogRaceController($scope, $modalInstance, raceData) {
         $scope.speed = '';
         $scope.traits = [];
         $scope.features = [];
-        for (var i=0; i<$scope.subvalues.length; i++) {
-            subrace = $scope.subvalues[i].subrace;
+        for (var i=0; i<$scope.races.length; i++) {
+            subrace = $scope.races[i].subrace;
             /*if (!subrace) {
                 subrace = race;
             }*/
@@ -491,12 +528,12 @@ function DialogRaceController($scope, $modalInstance, raceData) {
                         $scope.racialTraitIds.push($scope.raceObj.traits[trait].id);
                     }
                 }
-                for (var trait in subrace.traits) { // subrace traits
-                    if (subrace.traits.hasOwnProperty(trait)) {
-                        var subraceTrait = subrace.traits[trait];
+                for (var subRaceTrait in subrace.traits) { // subrace traits
+                    if (subrace.traits.hasOwnProperty(subRaceTrait)) {
+                        var subraceTrait = subrace.traits[subRaceTrait];
                         $scope.traits.push(new KeyValue(subraceTrait.id, subraceTrait.name, subraceTrait.description,
                             subraceTrait.benefit, subraceTrait.benefit_value, subraceTrait.per_level));
-                        $scope.racialTraitIds.push(subrace.traits[trait].id);
+                        $scope.racialTraitIds.push(subrace.traits[subRaceTrait].id);
                     }
                 }
                 break;
@@ -604,7 +641,7 @@ function DialogClassController($scope, $modalInstance, classData){
                 $scope.traits2Title = "Proficiencies";
                 $scope.traits2.push(new NameDesc("Armor", value.armor_prof), new NameDesc("Weapons", value.weapon_prof),
                     new NameDesc("Tools", value.tools), new NameDesc("Saving Throws", value.saving_throws),
-                    new NameDesc("Skills", "Choose " + value.num_skills + " from " + value.avail_skills));
+                    new NameDesc("Skills", value.avail_skills_desc));
                 //for (var feature in value.features) {
                 if (angular.isArray(value.features)) {
                     value.features.forEach(function(obj) {
@@ -644,7 +681,6 @@ function DialogSubclassController($scope, $modalInstance, subclasses){
         for (var subclass in data.subclasses) {
             $scope.values.push(data.subclasses[subclass]);
         }
-
     });*/
 
     $scope.description = 'Click a list item to view more information';
@@ -697,7 +733,7 @@ Array.prototype.getIndexBy = function (name, value) {
         }
     }
     return -1;
-}
+};
 // TODO: support multiple selections
 function DialogFeatureController($scope, $modalInstance, features, index, selectedFeatures, featureName) {
     $scope.title = 'Select Feature';
@@ -750,7 +786,6 @@ function DialogFeatureController($scope, $modalInstance, features, index, select
     };
 }
 
-// Deprecated
 function DialogCantripController($scope, $modalInstance, cantrips, numCantrips) {
     $scope.title = 'Select Cantrips';
     $scope.values = cantrips;
@@ -779,11 +814,7 @@ function DialogCantripController($scope, $modalInstance, cantrips, numCantrips) 
                 break;
             }
         }
-        if ($scope.spellsLeft - $scope.tempCantrips.length === 0) {
-            $scope.disabled = false;
-        } else {
-            $scope.disabled = true;
-        }
+        $scope.disabled = $scope.spellsLeft - $scope.tempCantrips.length !== 0; // disabled is true if there are still cantrips left to choose
     };
     $scope.done = function() {
         var tempCantrips = '';
@@ -801,6 +832,40 @@ function DialogCantripController($scope, $modalInstance, cantrips, numCantrips) 
     $scope.close = function(){
         $modalInstance.dismiss('cancel');
     };
+}
+
+function DialogSummaryController($scope, $modalInstance, character) {
+    var ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+    var ABILITY_MAPPER = {'str':'Strength', 'dex':'Dexterity', 'con':'Constitution', 'int':'Intelligence', 'wis':'Wisdom', 'cha':'Charisma'};
+    function addPlusSign(val) {
+        if (val >= 0) {
+            val = '+' + val;
+        }
+        return val;
+    }
+    character.hitPoints = character.classObj ? character.hitPoints + ' (' + character.level + 'd' + character.classObj.hit_dice + ')' : '';
+    character.initiative = addPlusSign(character.initiative);
+    character.speed = character.speed ? character.speed + ' feet' : '';
+    character.profBonus = addPlusSign(character.profBonus);
+    ABILITIES.forEach(function(ability) {
+        character.ability[ability].mod = addPlusSign(character.ability[ability].mod);
+        character.ability[ability].savingThrow = addPlusSign(character.ability[ability].savingThrow);
+    });
+    character.skillsArr = [];
+    character.skills.forEach(function(skill) {
+        character.skillsArr.push(skill.name + ' ' + (addPlusSign(skill.val)));
+    });
+    if (character.classObj && character.classObj.spellcasting) {
+        character.classObj.spellcasting.spellAbility = ABILITY_MAPPER[character.classObj.spellcasting.spellAbility];
+        if (character.classObj.selectedCantrips) {
+            character.classObj.selectedCantrips = character.classObj.selectedCantrips.join(', ');
+        }
+    }
+
+    $scope.character = character;
+    $scope.close = function() {
+        $modalInstance.dismiss('cancel');
+    }
 }
 
 function KeyValue(id, name, benefit, benefit_stat, benefit_value, per_level) {

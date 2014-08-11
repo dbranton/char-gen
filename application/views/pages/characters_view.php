@@ -1,7 +1,4 @@
-<div class="panel panel-default">
-    <div class="panel-heading">Your Characters</div>
-    <!--<div class="panel-body">
-    </div>-->
+<div ng-app="user" ng-controller="User" ng-init="init()" ng-cloak>
     <table class="table table-striped">
         <thead>
         <tr>
@@ -9,24 +6,20 @@
             <th>Level</th>
             <th>Race</th>
             <th>Class</th>
-            <!--<th>Subclass</th>-->
+            <th></th>
         </tr>
         </thead>
         <tbody>
-        <?php
-        //var_dump($characters);
-
-        if (is_array($characters)) {
-            for ($i=0; $i<count($characters); $i++) {
-                echo '<tr>';
-                echo '<td>' . anchor('user/character/' . $characters[$i]['id'], $characters[$i]['name']) . '</td>';
-                echo '<td>' . $characters[$i]['level'] . '</td>';
-                echo '<td>' . $characters[$i]['race'] . '</td>';
-                echo '<td>' . $characters[$i]['class'] . '</td>';
-                echo '</tr>';
-            }
-        }
-        ?>
+            <tr ng-if="!characters"><td colspan="5">Loading characters...</td></tr>
+            <tr ng-if="characters.length == 0"><td colspan="5">You have no characters yet</td></tr>
+            <tr ng-repeat="character in characters">
+                <td><a ng-href="character/{{character.id}}">{{character.name}}</a></td>
+                <td>{{character.level}}</td>
+                <td>{{character.race}}</td>
+                <td>{{character.class}}</td>
+                <td><a href="" ng-click="deleteCharacter(character.id)"><i class="fa fa-trash-o"></i><a/></td>
+            </tr>
         </tbody>
     </table>
+    <?php echo anchor('character_generator', '<i class="fa fa-plus"></i> Add Character', array('class'=>'btn btn-default')); ?>
 </div>

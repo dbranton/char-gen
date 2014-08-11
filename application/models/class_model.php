@@ -14,13 +14,13 @@
                 foreach ($query->result() as $row) {
                     $class['name'] = $row->name;
                     $class['desc'] = $row->desc;
-                    $class['ability_adj'] = $row->ability_adjustment;
                     $class['hit_dice'] = $row->hit_dice;
                     $class['armor_prof'] = $row->armor_shield_prof;
                     $class['weapon_prof'] = $row->weapon_prof;
                     $class['tools'] = $row->tools;
                     $class['saving_throws'] = $row->saving_throw_desc;
                     $class['saving_throw_code'] = $row->saving_throws;
+                    $class['avail_skills_desc'] = $row->avail_skills_desc;
                     $class['avail_skills'] = $row->avail_skills;
                     $class['num_skills'] = $row->num_skills;
                     $class['features'] = $this->_getClassLevelFeatures($row->id);  // returns array of key value pairs
@@ -88,7 +88,7 @@
             WHERE level IS NOT NULL AND class_table.active = '1' ORDER BY class_table.name
          *
          */
-        private function _getClassLevelFeatures($id, $isFeatureId = FALSE) {    // if isFeatureId is false, then use classId
+        private function _getClassLevelFeatures($id, $isFeatureId = FALSE, $classId = NULL) {    // if isFeatureId is false, then use classId
             /*$sql = "SELECT DISTINCT features_table.*" . //, class_features.*" .
                 " FROM features_table" .
                 " JOIN class_features" .
@@ -122,12 +122,15 @@
                         $class_feature['benefit'] = $this->_getClassFeatureBenefits($row->id);
                         $class_feature['benefit_stat'] = $row->benefit;
                         $class_feature['benefit_value'] = $row->benefit_value;
+                        if ($class_feature['benefit_stat'] == 'cantrips') {
+                            $class_feature['cantrips'] = $this->_getCantrips($classId);
+                        }
                         if ($row->type == 'subclass') {
                             $class_feature['subclasses'] = $this->_getSubClasses($row->id);
                             //$this->_getSubClassDesc($row->id);
                         }
                         if ($row->type == 'super_feature') {
-                            $class_feature['subfeatures'] = $this->_getClassLevelFeatures($row->id, TRUE);
+                            $class_feature['subfeatures'] = $this->_getClassLevelFeatures($row->id, TRUE, $id);
                         }
                         array_push($features, $class_feature);
                         //$features[$class_feature['id']] = $class_feature; // was [$row->name] but can't because names are no longer unique
@@ -152,6 +155,30 @@
                 return $subFeatures;
             }
         }*/
+
+        private function _getCantrips($classId) {
+            $sql = "SELECT spells_table.*" .
+                " FROM spells_table " .
+                " JOIN class_spells" .
+                " ON class_spells.spell_id = spells_table.id" .
+                " WHERE level = '0' AND class_spells.class_id = '" . $classId . "' ORDER BY name ASC";
+            $query = $this->db->query($sql);
+            if ($query->num_rows() > 0) {
+                $spells = array();
+                foreach ($query->result() as $row) {
+                    $spell['name'] = $row->name;
+                    $spell['level'] = $row->level;
+                    $spell['desc'] = $row->description;
+                    $spell['type'] = $row->type;
+                    $spell['casting_time'] = $row->casting_time;
+                    $spell['range'] = $row->range;
+                    $spell['components'] = $row->components;
+                    $spell['duration'] = $row->duration;
+                    array_push($spells, $spell);
+                }
+                return $spells;
+            }
+        }
 
         private function _getSubClasses($subclassId) {
             $sql = "SELECT class_table.*" .

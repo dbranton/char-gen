@@ -88,7 +88,7 @@ class Race_model extends CI_Model {
     }
 
     public function getSubraceTraits($subraceId) {
-        $sql = "SELECT features_table.*, race_features.benefit AS benefit_desc" .
+        $sql = "SELECT features_table.*, race_features.benefit AS benefit_desc, race_features.id AS race_feature_id" .
             " FROM features_table" .
             " JOIN race_features" .
             " ON race_features.feature_id = features_table.id" .
@@ -100,7 +100,7 @@ class Race_model extends CI_Model {
         if ($query->num_rows() > 0) {
             $traits = array();
             foreach ($query->result() as $row) {
-                $trait['id'] = $row->id;
+                $trait['id'] = $row->race_feature_id;
                 $trait['name'] = $row->name;
                 $trait['description'] = $row->description;
                 $trait['benefit_desc'] = $row->benefit_desc;
