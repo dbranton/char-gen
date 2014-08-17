@@ -74,6 +74,7 @@ class User extends CI_Controller {
         $this->session->sess_destroy();
         $data['title'] = 'Home';
         $data['main_content'] = 'pages/home';
+        $data['type'] = '';
         $this->load->view('template', $data);
     }
 

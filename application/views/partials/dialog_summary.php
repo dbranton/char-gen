@@ -131,9 +131,9 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="row" ng-show="character.classObj.spellcasting">
-                        <table class="table table-condensed">
-                            <h4>Spellcasting</h4>
+                    <div class="row" ng-if="character.classObj.spellcasting || character.raceObj.spellcasting">
+                        <h4>Spellcasting</h4>
+                        <table class="table table-condensed" ng-if="character.classObj.spellcasting">
                             <tr>
                                 <th>Spellcasting Ability: </th>
                                 <td>{{character.classObj.spellcasting.spellAbility}}</td>
@@ -149,6 +149,24 @@
                             <tr>
                                 <th>Cantrips: </th>
                                 <td>{{character.classObj.selectedCantrips}}</td>
+                            </tr>
+                        </table>
+                        <table class="table table-condensed" ng-if="character.raceObj.spellcasting">
+                            <tr>
+                                <th>Spellcasting Ability: </th>
+                                <td>{{character.raceObj.spellcasting.spellAbility}}</td>
+                            </tr>
+                            <tr>
+                                <th>Spell Save DC: </th>
+                                <td>{{character.raceObj.spellcasting.spellSaveDC}}</td>
+                            </tr>
+                            <tr>
+                                <th>Spell Attack Bonus: </th>
+                                <td>{{character.raceObj.spellcasting.spellAttkBonus}}</td>
+                            </tr>
+                            <tr>
+                                <th>Cantrips: </th>
+                                <td>{{character.raceObj.cantrip}}</td>
                             </tr>
                         </table>
                     </div>

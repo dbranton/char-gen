@@ -8,8 +8,10 @@ if (is_array($backgrounds)):
             </h4>
             <div>
                 <p><?php echo $backgrounds[$i]['desc']; ?></p>
-                <p><b>Feature: <?php echo $backgrounds[$i]['trait_name']; ?>:</b>
-                <?php echo $backgrounds[$i]['trait_desc']; ?></p>
+                <dl>
+                    <dt>Feature: <?php echo $backgrounds[$i]['trait_name']; ?></dt>
+                    <dd><?php echo $backgrounds[$i]['trait_desc']; ?></p></dd>
+                </dl>
                 <p><b>Skills:</b> <?php echo $backgrounds[$i]['skills']; ?></p>
                 <?php if ($backgrounds[$i]['tools']): ?>
                     <p><b>Tools:</b> <?php echo $backgrounds[$i]['tools']; ?></p>

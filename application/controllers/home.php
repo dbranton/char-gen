@@ -9,6 +9,7 @@ class Home extends CI_Controller {
         $this->load->view('footer');*/
 
         $data['main_content'] = 'pages/home';
+        $data['type'] = '';
         $this->load->view('template', $data);
     }
 }

@@ -71,6 +71,10 @@ class User_model extends CI_Model {
         $spellAbility = isset($character->classObj->spellcasting) ? $character->classObj->spellcasting->spellAbility : '';
         $spellSaveDC = isset($character->classObj->spellcasting) ? $character->classObj->spellcasting->spellSaveDC : 0;
         $spellAttkBonus = isset($character->classObj->spellcasting) ? $character->classObj->spellcasting->spellAttkBonus : 0;
+        $bonusSpellAbility = isset($character->raceObj->spellcasting) ? $character->raceObj->spellcasting->spellAbility : '';
+        $bonusSpellSaveDC = isset($character->raceObj->spellcasting) ? $character->raceObj->spellcasting->spellSaveDC : 0;
+        $bonusSpellAttkBonus = isset($character->raceObj->spellcasting) ? $character->raceObj->spellcasting->spellAttkBonus : 0;
+        $bonusCantrip = isset($character->raceObj->cantrip) ? $character->raceObj->cantrip : '';
         $hitDice = intval($character->classObj->hit_dice);
         $hitPoints = $character->hitPoints;
         $profBonus = $character->profBonus;
@@ -158,6 +162,7 @@ class User_model extends CI_Model {
         $initiative = $character->initiative;
         $armorClass = $character->armorClass;
         $passivePerception = $character->passivePerception;
+        $expertise = isset($character->classObj->selectedExpertise) ? implode(', ', $character->classObj->selectedExpertise) : '';
         $cantrips = isset($character->classObj->selectedCantrips) ? implode(', ', $character->classObj->selectedCantrips) : '';
         /*$racialTraitIds = explode(',', $this->input->post('racialTraitsName'));   // ex: ['2','5','16']
         $racialTraits = array();
@@ -187,6 +192,7 @@ class User_model extends CI_Model {
             'pseudo_class' => $subclassName,
             'class_feature_ids' => $classFeatureIds,
             'cantrips' => $cantrips,
+            'bonus_cantrip' => $bonusCantrip,
             'level' => $level,
             'skills' => $skillProf,
             'hit_points' => $hitPoints,
@@ -237,9 +243,13 @@ class User_model extends CI_Model {
             'stealth' => $stealth,
             'survival' => $survival,
             'senses' => $passivePerception,
+            'expertise' => $expertise,
             'spell_ability' => $spellAbility,
             'spell_save_dc' => $spellSaveDC,
             'spell_attk_bonus' => $spellAttkBonus,
+            'bonus_spell_ability' => $bonusSpellAbility,
+            'bonus_spell_save_dc' => $bonusSpellSaveDC,
+            'bonus_spell_attk_bonus' => $bonusSpellAttkBonus,
             'user_id' => $user_id,
             'date_added' => date("m/d/Y")
         );
@@ -293,7 +303,7 @@ class User_model extends CI_Model {
             $character['proficiency_bonus'] = $row->proficiency_bonus;
             $character['proficiencies'] = $row->armor_prof != 'None' ? $row->armor_prof . ', ' : '';
             $character['proficiencies'] .= $row->weapon_prof;
-            $toolProf = $row->tool_prof != 'None' ? ', ' . $row->tool_prof : '';
+            $toolProf = $row->tool_prof != '' ? ', ' . $row->tool_prof : '';
             $character['proficiencies'] .= $toolProf;
             $character['speed'] = $row->speed;
             $character['languages'] = $row->languages;
@@ -336,12 +346,16 @@ class User_model extends CI_Model {
             $character['survival'] = $row->survival >= 0 ? '+' . $row->survival : $row->survival;
             $character['senses'] = $row->senses;
             $character['traits'] = $this->_getRacialTraits($row->racial_trait_ids);
-            $character['features'] = $this->_getClassFeatures($row->class_feature_ids, $row->cantrips);
+            $character['features'] = $this->_getClassFeatures($row->class_feature_ids, $row->cantrips, $row->expertise);
             $character['background'] = $this->_getBackground($row->background);
-            $character['spellcasting'] = $ability_mapper[$row->spell_ability];
-            $character['spell_save_dc'] = $row->spell_save_dc;
+            $character['spellcasting'] = !empty($row->spell_ability) ? $ability_mapper[$row->spell_ability] : NULL;
+            $character['spell_save_dc'] = !empty($row->spell_save_dc) ? $row->spell_save_dc : NULL;
             $character['spell_attk_bonus'] = $row->spell_attk_bonus >= 0 ? '+' . $row->spell_attk_bonus : $row->spell_attk_bonus;
+            $character['bonus_spellcasting'] = !empty($row->bonus_spell_ability) ? $ability_mapper[$row->bonus_spell_ability] : NULL;
+            $character['bonus_spell_save_dc'] = $row->bonus_spell_save_dc;
+            $character['bonus_spell_attk_bonus'] = $row->bonus_spell_attk_bonus >= 0 ? '+' . $row->bonus_spell_attk_bonus : $row->bonus_spell_attk_bonus;
             $character['cantrips'] = $row->cantrips;
+            $character['bonus_cantrip'] = $row->bonus_cantrip;
             return $character;
         } else {
             // TODO: handle error
@@ -380,7 +394,7 @@ class User_model extends CI_Model {
         }
     }
 
-    private function _getClassFeatures($classFeatureIds, $cantrips) {
+    private function _getClassFeatures($classFeatureIds, $cantrips, $expertise) {
         $sql = "SELECT class_features.*" .
             " FROM class_features" .
             " WHERE class_features.id IN (" . $classFeatureIds . ")" .
@@ -394,6 +408,10 @@ class User_model extends CI_Model {
                     $classFeature['benefit'] = 'You know the following cantrips, and can cast them at will: ' . $cantrips;
                 } else {
                     $classFeature['benefit'] = $row->benefit;
+                }
+                // TODO: test this
+                if ($row->type == 'expertise') {
+                    $classFeature['benefit'] = 'Your proficiency bonus with the following are doubled: ' . $expertise;
                 }
                 array_push($classFeatures, $classFeature);
             }

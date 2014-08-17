@@ -1,21 +1,49 @@
 <div class="col-md-6">
-    <?php
-    //var_dump($character);
+    <?php //var_dump($character); ?>
 
-    if (is_array($character)) {
-        echo '<p><b>Level ' . $character['level'] . ' ' . $character['race'] . ' ' . $character['class'] . '</b></p>';
-        echo '<p><b>Armor Class</b> ' . $character['armor_class'] . '</p>';
-        echo '<p><b>Hit Points</b> ' . $character['hit_points'] . ' (1d' . $character['hit_dice'] . ' Hit Die)</p>';
-        echo '<p><b>Initiative</b> ' . $character['initiative'] . '</p>';
-        echo '<p><b>Speed</b> ' . $character['speed'] . ' ft.</p>';
-        echo '<p><b>Proficiency Bonus</b> ' . '+' . $character['proficiency_bonus'] . '</p>';
-        echo '<p><b>Proficiencies</b> ' . $character['proficiencies'] . '</p>';
-        echo '<p><b>Languages</b> ' . $character['languages'] . '</p>';
-        echo '<p><b>Passive Wisdom (Perception)</b> ' . $character['senses'] . '</p>';
-    }
-    ?>
-    <fieldset>
-        <legend class="small-legend">Ability Scores</legend>
+    <table class="table">
+        <thead>
+            <tr>
+                <th colspan="2">Level <?php echo $character['level'] . ' ' . $character['race'] . ' ' . $character['class']; ?></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Armor Class</th>
+                <td><?php echo $character['armor_class']; ?></td>
+            </tr>
+            <tr>
+                <th>Hit Points</th>
+                <td><?php echo $character['hit_points'] . ' (1d' . $character['hit_dice'] . ' Hit Die)'; ?></td>
+            </tr>
+            <tr>
+                <th>Initiative</th>
+                <td><?php echo $character['initiative']; ?></td>
+            </tr>
+            <tr>
+                <th>Speed</th>
+                <td><?php echo $character['speed'] . ' feet'; ?></td>
+            </tr>
+            <tr>
+                <th>Proficiency Bonus</th>
+                <td><?php echo '+' . $character['proficiency_bonus']; ?></td>
+            </tr>
+            <tr>
+                <th>Proficiencies</th>
+                <td><?php echo $character['proficiencies']; ?></td>
+            </tr>
+            <tr>
+                <th>Languages</th>
+                <td><?php echo $character['languages']; ?></td>
+            </tr>
+            <tr>
+                <th>Passive Perception</th>
+                <td><?php echo $character['senses'];?></td>
+            </tr>
+        </tbody>
+    </table>
+    <div>
+        <h4>Ability Scores</h4>
         <table class="table table-condensed">
             <thead>
                 <th>Ability</th>
@@ -62,9 +90,9 @@
                 </tr>
             </tbody>
         </table>
-    </fieldset>
-    <fieldset>
-        <legend class="small-legend">Skills</legend>
+    </div>
+    <div>
+        <h4>Skills</h4>
         <ul class="list-inline">
             <li>Acrobatics <?php echo $character['acrobatics']; ?></li>
             <li>Animal Handling <?php echo $character['acrobatics']; ?></li>
@@ -85,10 +113,10 @@
             <li>Stealth <?php echo $character['stealth']; ?></li>
             <li>Survival <?php echo $character['survival']; ?></li>
         </ul>
-    </fieldset>
+    </div>
     <?php if ($character['spellcasting']): ?>
-    <fieldset>
-        <legend class="small-legend">Spellcasting</legend>
+    <div>
+        <h4>Spellcasting</h4>
         <table class="table table-condensed">
             <tr>
                 <th>Spellcasting Ability: </th>
@@ -107,7 +135,30 @@
                 <td><?php echo $character['cantrips']; ?></td>
             </tr>
         </table>
-    </fieldset>
+    </div>
+    <?php endif; ?>
+    <?php if ($character['bonus_spellcasting']): ?>
+    <div>
+        <h4>Bonus Spellcasting</h4>
+        <table class="table table-condensed">
+            <tr>
+                <th>Spellcasting Ability: </th>
+                <td><?php echo $character['bonus_spellcasting']; ?></td>
+            </tr>
+            <tr>
+                <th>Spell Save DC: </th>
+                <td><?php echo $character['bonus_spell_save_dc']; ?></td>
+            </tr>
+            <tr>
+                <th>Spell Attack Bonus: </th>
+                <td><?php echo $character['bonus_spell_attk_bonus']; ?></td>
+            </tr>
+            <tr>
+                <th>Cantrips: </th>
+                <td><?php echo $character['bonus_cantrip']; ?></td>
+            </tr>
+        </table>
+    </div>
     <?php endif; ?>
 </div>
 <div class="col-md-6">

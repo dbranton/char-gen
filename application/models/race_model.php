@@ -61,6 +61,9 @@ class Race_model extends CI_Model {
                 $trait['benefit_desc'] = $row->benefit_desc;
                 $trait['benefit_stat'] = $row->benefit;
                 $trait['benefit_value'] = $row->benefit_value;
+                if ($trait['benefit_stat'] == 'bonus_cantrip') {
+                    $trait['cantrip'] = $trait['benefit_value']; // ex: 'Thaumaturgy, cha'
+                }
                 $trait['per_level'] = $row->per_level;
                 array_push($traits, $trait);
             }
@@ -107,9 +110,39 @@ class Race_model extends CI_Model {
                 $trait['benefit_stat'] = $row->benefit;
                 $trait['benefit_value'] = $row->benefit_value;
                 $trait['per_level'] = $row->per_level;
+                if ($trait['benefit_stat'] == 'bonus_cantrip_choice') {
+                    $benefitArr = explode(', ', $trait['benefit_value']);  // convert string to array
+                    $classId = $benefitArr[0]; // ex: 4
+                    $trait['cantrips'] = $this->_getCantrips($classId);
+                    $trait['benefit_value'] = $benefitArr[1];  // ex: 'int'
+                }
                 array_push($traits, $trait);
             }
             return $traits;
+        }
+    }
+
+    private function _getCantrips($classId) {
+        $sql = "SELECT spells_table.*" .
+            " FROM spells_table " .
+            " JOIN class_spells" .
+            " ON class_spells.spell_id = spells_table.id" .
+            " WHERE level = '0' AND class_spells.class_id = '" . $classId . "' ORDER BY name ASC";
+        $query = $this->db->query($sql);
+        if ($query->num_rows() > 0) {
+            $spells = array();
+            foreach ($query->result() as $row) {
+                $spell['name'] = $row->name;
+                $spell['level'] = $row->level;
+                $spell['desc'] = $row->description;
+                $spell['type'] = $row->type;
+                $spell['casting_time'] = $row->casting_time;
+                $spell['range'] = $row->range;
+                $spell['components'] = $row->components;
+                $spell['duration'] = $row->duration;
+                array_push($spells, $spell);
+            }
+            return $spells;
         }
     }
 

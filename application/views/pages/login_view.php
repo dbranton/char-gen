@@ -1,4 +1,4 @@
-<div ng-app>
+<div ng-app="user">
     <?php echo validation_errors(); ?>
     <div ng-controller="User">
         <div class="well">

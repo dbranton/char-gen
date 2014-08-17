@@ -33,6 +33,8 @@
     <div class="tab-pane" id="level1">
         <?php echoSpellsByLevel($spells, 1); ?>
     </div>
-    <div class="tab-pane" id="level2">Coming soon...</div>
+    <div class="tab-pane" id="level2">
+        <?php echoSpellsByLevel($spells, 2); ?>
+    </div>
     <div class="tab-pane" id="level3">Coming soon...</div>
 </div>

@@ -72,6 +72,8 @@
                     $benefit['id'] = $row->id;
                     $benefit['description'] = $row->benefit;
                     $benefit['level'] = $row->level;
+                    $benefit['benefit_stat'] = $row->benefit_stat;
+                    $benefit['benefit_value'] = $row->benefit_value;
                     array_push($benefit_array, $benefit);
                 }
                 return $benefit_array;
@@ -123,7 +125,7 @@
                         $class_feature['benefit_stat'] = $row->benefit;
                         $class_feature['benefit_value'] = $row->benefit_value;
                         if ($class_feature['benefit_stat'] == 'cantrips') {
-                            $class_feature['cantrips'] = $this->_getCantrips($classId);
+                            $class_feature['cantrips'] = $this->_getCantrips($classId); // get cantrips list based on classId
                         }
                         if ($row->type == 'subclass') {
                             $class_feature['subclasses'] = $this->_getSubClasses($row->id);

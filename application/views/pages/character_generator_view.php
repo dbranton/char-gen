@@ -1,11 +1,11 @@
 <!--<div id="info_contents">-->
-<?php $is_mobile = ($mobile) ? 'true' : 'false'; ?>
+<?php $is_mobile = ($mobile) ? 'true' : 'false'; $is_logged_in = ($logged_in) ? 'true' : 'false'; ?>
 
 <div id="charGenApp" class="form-horizontal" ng-app="generator" ng-controller="CharGen" ng-init="init()">
-    <span class="hide">{{isMobile=<?php echo $is_mobile; ?>}}</span>
+    <span class="hide">{{isMobile=<?php echo $is_mobile; ?>}} {{isLoggedIn=<?php echo $is_logged_in; ?>}}</span>
     <span ng-hide="true">Loading Character Generator...</span>
     <div ng-cloak>
-        <div ng-if="isNotLoggedIn" class="alert alert-warning" ng-hide="successMessage">
+        <div ng-if="!isLoggedIn" class="alert alert-warning" ng-hide="successMessage">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
             <p>You are not currently logged in. If saved, your character will be stored on the browser instead of your account.</p>
         </div>
@@ -15,9 +15,8 @@
         </div>
         <div class="alert alert-danger" ng-show="errorMessage">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <p>{{errorMessage}}</p>
+            <div ng-bind-html="errorMessage"></div>
         </div>
-        <input id="isMobile" type="hidden" value="<?php echo $is_mobile; ?>" />
         <div class="row panel panel-default">
             <div class="panel-heading">
                 <div class="pull-left">
@@ -79,6 +78,22 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group" ng-show="character.raceObj.cantrip || character.raceObj.cantrips">
+                                <label class="col-sm-4 control-label">Bonus Cantrip:</label>
+                                <div class="col-sm-8">
+                                    <div class="text" ng-hide="character.raceObj.cantrips">{{character.raceObj.cantrip}}</div>
+                                    <!-- still needs work -->
+                                    <div class="input-group" ng-show="character.raceObj.cantrips">
+                                        <label class="input-group-addon btn btn-default" ng-click="openBonusCantripDialog()">
+                                            <span class="fa fa-columns"></span>
+                                        </label>
+                                        <select ui-select2 ng-model="character.raceObj.cantrip" id="bonusCantrip" style="width: 100%"
+                                                ng-change="broadcastNonObj(character.raceObj.cantrip, 'selectedBonusCantrip')">
+                                            <option ng-repeat="cantrip in character.raceObj.cantrips">{{cantrip.name}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </fieldset>
                     <fieldset>
@@ -133,7 +148,7 @@
                                         <label class="input-group-addon btn btn-default" ng-click="openCantripDialog()">
                                             <span class="fa fa-columns"></span>
                                         </label>
-                                        <select ui-select2 ng-model="character.classObj.selectedCantrips" id="chosenCantrips" multiple max="{{character.classObj.numCantrips}}" style="width: 100%">
+                                        <select ui-select2 ng-model="character.classObj.selectedCantrips" id="chosenCantrips" multiple max="{{character.classObj.numCantrips}}" style="width: 100%" ng-change="broadcastNonObj(character.classObj.selectedCantrips, 'selectedCantrips')">
                                             <option ng-repeat="cantrip in character.classObj.cantrips">{{cantrip.name}}</option>
                                         </select>
                                     </div>
@@ -235,6 +250,14 @@
                             <label>Passive Wisdom (Perception):</label> {{character.passivePerception}}
                             <div ng-show="character.numSkillsLeft >= 0">{{character.numSkillsLeft}} Skills Left</div>
                             <skills></skills>
+                        </div>
+                        <div class="form-group" ng-hide="!character.classObj.expertiseList">
+                            <label class="col-sm-4 control-label">Expertise:</label>
+                            <div class="col-sm-8 text">
+                                <select ui-select2 ng-model="character.classObj.selectedExpertise" id="chosenExpertise" multiple max="{{character.classObj.numExpertise}}" style="width: 100%" ng-change="changeExpertise()">
+                                    <option ng-repeat="expertise in character.classObj.expertiseList">{{expertise}}</option>
+                                </select>
+                            </div>
                         </div>
                     </fieldset>
                     <fieldset>

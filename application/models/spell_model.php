@@ -6,7 +6,8 @@ class Spell_model extends CI_Model {
         $spells = array();
         $cantrips = $this->_getSpellsByLevel(0);
         $level1Spells = $this->_getSpellsByLevel(1);
-        array_push($spells, $cantrips, $level1Spells);
+        $level2Spells = $this->_getSpellsByLevel(2);
+        array_push($spells, $cantrips, $level1Spells, $level2Spells);
         return $spells;
     }
 
