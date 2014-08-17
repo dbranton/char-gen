@@ -13,6 +13,15 @@ charModule.run(function($rootScope) {
 });
 
 
+// TODO: move somewhere else
+Array.prototype.getIndexBy = function (name, value) {
+    for (var i = 0; i < this.length; i++) {
+        if (this[i][name] == value) {
+            return i;
+        }
+    }
+    return -1;
+};
 /**
  * Angular Controller
  * @param $scope
@@ -36,10 +45,6 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
     };
     $scope.numLanguagesLeft = 0;
 
-    charGenFactory.checkIfLoggedIn().success(function(data) {
-        $scope.isLoggedIn = JSON.parse(data);
-        $scope.isNotLoggedIn = !$scope.isLoggedIn;
-    });
     $scope.fillInCharacter = function() {
         $scope.storedCharacter = charGenFactory.returnStoredCharacter();
         $scope.character.prefillCharacter($scope.storedCharacter);
@@ -61,7 +66,7 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                     })
                     .error(function(data, status, headers, config) {
                         $scope.successMessage = null;
-                        $scope.errorMessage = data.message;
+                        $scope.errorMessage = data; // html string
                     });
             } else {    // not logged in, therefore save character
                 charGenFactory.storeCharacter();
@@ -154,6 +159,16 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
         openDialog();
     };
 
+    $scope.openBonusCantripDialog = function() {
+        opts.templateUrl = 'dialog/spellDialog';
+        opts.controller = DialogCantripController;
+        opts.resolve = {
+            cantrips: function() { return angular.copy($scope.character.raceObj.cantrips); },
+            numCantrips: function() { return 1; }
+        };
+        openDialog();
+    };
+
     $scope.openSummary = function() {
         opts.templateUrl = 'dialog/summary';
         opts.controller = DialogSummaryController;
@@ -165,7 +180,7 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
 
     $scope.$watch('isMobile', function(newVal) {
        if (newVal) {
-           $('.select2-input').prop('readonly', true);
+           $('.select2-input').prop('readonly', true);  // doesn't work
        }
     });
 
@@ -205,6 +220,10 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
     // determines points left
     $scope.incrementAbility = function(ability, value) {    // value can only be 1 or -1
         $scope.character.modifyAbilityScore(ability, value);
+    };
+
+    $scope.changeExpertise = function() {
+        $scope.character.updateSkillScore();
     };
 
     var LANGUAGE_LIST = [];
@@ -267,6 +286,17 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
             }
         }
     };
+    $scope.broadcastNonObj = function(name, prop) {  // for selecting cantrips (and maybe languages)
+        var string = name;
+        if (angular.isArray(name)) {
+            string = name.join(', ');
+        }
+        var obj = {
+            checked: true
+        };
+        obj[prop] = string;
+        $scope.$broadcast('handleBroadcast', obj);
+    };
 
     $scope.$on('handleBroadcast', function(event, args) {
         var features = {};  // reset
@@ -301,6 +331,9 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                         if (trait.benefit_stat) {
                             features[trait.benefit_stat] = trait.benefit_value;
                         }
+                        /*if (trait.cantrip) {
+                            $scope.character.raceObj.cantrip = trait.cantrip;
+                        }*/
                     });
                 }
                 if ($scope.race.subrace.traits) {
@@ -310,6 +343,19 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                         }
                         if (trait.benefit_stat) {
                             features[trait.benefit_stat] = trait.benefit_value;
+                        }
+                        if (trait.cantrip) {
+                            $scope.character.raceObj.cantrip = trait.cantrip;
+                        }
+                        if (trait.cantrips && !args.selectedBonusCantrip) {    // trait.cantrips is the cantrip list
+                            $scope.character.raceObj.cantrips = angular.copy(trait.cantrips);   // populate cantrips list
+                        }
+                        if ($scope.character.classObj && $scope.character.classObj.selectedCantrips) {
+                            for (var i=0, ilen=$scope.character.classObj.selectedCantrips.length; i<ilen; i++) {
+                                if ($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]) !== -1) {
+                                    $scope.character.raceObj.cantrips.splice($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]), 1);  // remove selected cantrips (if any) from bonus cantrips list
+                                }
+                            }
                         }
                     });
                 }
@@ -340,12 +386,16 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                             if (featureObj.benefit) {
                                 featureObj.benefit.forEach(function(benefitObj) {
                                     if (benefitObj.level <= $scope.character.level) {
-                                        classFeatureId = benefitObj.id;
-                                        tempBenefit = benefitObj.description;
+                                        tempBenefit = benefitObj;
                                     }
                                 });
-                                $scope.character.classObj.classFeatures.push(new KeyValue(classFeatureId, featureObj.name, tempBenefit));
-                                tempBenefit = '';   // reset
+                                if (tempBenefit.description !== '') {   // adds benefits that have descriptions to classFeatures list
+                                    $scope.character.classObj.classFeatures.push(new KeyValue(tempBenefit.id, featureObj.name, tempBenefit.description));
+                                }
+                                if (tempBenefit.benefit_stat) {
+                                    features[tempBenefit.benefit_stat] = tempBenefit.benefit_value;
+                                }
+                                tempBenefit = {};   // reset
                             }
                             // if parent feature is a choice, set $scope.featureChoices for dialog, else set subfeatures
                             if (featureObj.benefit_stat === 'feature_choice') {
@@ -356,27 +406,32 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                             } else if (featureObj.subfeatures) {
                                 featureObj.subfeatures.forEach(function(subfeature) {
 
-                                    if (subfeature.cantrips) {
-                                        $scope.character.classObj.cantrips = subfeature.cantrips;   // populate cantrips list
+                                    if (subfeature.cantrips && !args.selectedCantrips) {    // make sure to not execute when selecting cantrips
+                                        $scope.character.classObj.cantrips = angular.copy(subfeature.cantrips);   // populate cantrips list
+                                    }
+                                    if ($scope.character.raceObj && $scope.character.raceObj.cantrip &&
+                                            $scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1) {
+                                        $scope.character.classObj.cantrips.splice($scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);  // remove bonus cantrip (if any) from cantrips list
                                     }
                                     if (subfeature.benefit) {
                                         subfeature.benefit.forEach(function(benefitObj, idx) {
                                             if (benefitObj.level <= $scope.character.level) {
-                                                classFeatureId = benefitObj.id;
-                                                tempBenefit = benefitObj.description;
-                                                if (subfeature.cantrips) {
-                                                    $scope.character.classObj.numCantrips = parseInt(subfeature.benefit_value.split(', ')[idx]);
-                                                }
+                                                tempBenefit = benefitObj;
                                             }
                                         });
-                                        $scope.character.classObj.classFeatures.push(new KeyValue(classFeatureId, subfeature.name, tempBenefit));
-                                        tempBenefit = '';   // reset
+                                        if (tempBenefit.description !== '') {   // adds benefits that have descriptions to classFeatures list
+                                            $scope.character.classObj.classFeatures.push(new KeyValue(tempBenefit.id, subfeature.name, tempBenefit.description));
+                                        }
+                                        if (tempBenefit.benefit_stat) {
+                                            features[tempBenefit.benefit_stat] = tempBenefit.benefit_value;
+                                        }
+                                        tempBenefit = {};   // reset
                                     }
                                 });
                             }
-                            if (featureObj.benefit_stat) {
+                            /*if (featureObj.benefit_stat) {
                                 features[featureObj.benefit_stat] = featureObj.benefit_value;
-                            }
+                            }*/
                         }
                     });
                     $scope.currentClassFeatures = $scope.character.classObj.classFeatures;
@@ -403,10 +458,12 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                                         tempSubclassBenefit = benefit;
                                     }
                                 });
-                                subclassFeatures.push(new KeyValue(tempSubclassBenefit.id, feature.name, tempSubclassBenefit.description));
-                            }
-                            if (feature.benefit_stat) {
-                                features[feature.benefit_stat] = feature.benefit_value;
+                                if (tempSubclassBenefit.description !== '') {
+                                    subclassFeatures.push(new KeyValue(tempSubclassBenefit.id, feature.name, tempSubclassBenefit.description));
+                                }
+                                if (tempSubclassBenefit.benefit_stat) {
+                                    features[tempSubclassBenefit.benefit_stat] = tempSubclassBenefit.benefit_value;
+                                }
                             }
                         }
                     });
@@ -443,14 +500,13 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
             if (args.selectedCantrips) {
                 $scope.character.classObj.selectedCantrips = args.selectedCantrips.split(', ');
             }
+            if (args.selectedBonusCantrip) {
+                $scope.character.raceObj.cantrip = args.selectedBonusCantrip;
+            }
 
             $scope.character.handleTools();
             $scope.character.numLanguages = $scope.character.background ? parseInt($scope.character.background.languages) : 0;
             $scope.character.calculateModifiers(); // update ability modifiers
-            /*if ($scope.character.ability['int'].mod > 0) {  // needs to come after
-                $scope.character.numLanguages += $scope.character.ability['int'].mod;
-            }*/
-            //$scope.character.hitPoints = $scope.character.classHP + $scope.character.ability.con.mod;   // no longer accounts for dialog ability
 
             // needs to be at the very end to alter existing properties
             if (!args.subclass && !args.selectedFeature) {  // assuming that features and subclasses don't affect skills
@@ -715,15 +771,6 @@ function DialogSubclassController($scope, $modalInstance, subclasses){
         $modalInstance.dismiss('cancel');
     };
 }
-// TODO: move somewhere else
-Array.prototype.getIndexBy = function (name, value) {
-    for (var i = 0; i < this.length; i++) {
-        if (this[i][name] == value) {
-            return i;
-        }
-    }
-    return -1;
-};
 // TODO: support multiple selections
 function DialogFeatureController($scope, $modalInstance, features, index, selectedFeatures, featureName) {
     $scope.title = 'Select Feature';
@@ -812,7 +859,11 @@ function DialogCantripController($scope, $modalInstance, cantrips, numCantrips) 
             // convert tempCantrips to sorted string
             $scope.tempCantrips.sort();
             tempCantrips = $scope.tempCantrips.join(', ');
-            $scope.$emit('handleEmit', {selectedCantrips: tempCantrips, checked: true});
+            if (numCantrips === 1) {    // assume if numCantrips is 1, then it is for bonus cantrip
+                $scope.$emit('handleEmit', {selectedBonusCantrip: tempCantrips, checked: true});
+            } else {
+                $scope.$emit('handleEmit', {selectedCantrips: tempCantrips, checked: true});
+            }
             $modalInstance.close();
         } else {
             alert("Please select a feature");
@@ -845,10 +896,22 @@ function DialogSummaryController($scope, $modalInstance, character) {
     character.skills.forEach(function(skill) {
         character.skillsArr.push(skill.name + ' ' + (addPlusSign(skill.val)));
     });
+    if (character.raceObj && character.raceObj.spellcasting) {
+        character.raceObj.spellcasting.spellAbility = ABILITY_MAPPER[character.raceObj.spellcasting.spellAbility];
+        character.raceObj.spellcasting.spellAttkBonus = '+' + character.raceObj.spellcasting.spellAttkBonus;
+    }
     if (character.classObj && character.classObj.spellcasting) {
         character.classObj.spellcasting.spellAbility = ABILITY_MAPPER[character.classObj.spellcasting.spellAbility];
+        character.classObj.spellcasting.spellAttkBonus = '+' + character.classObj.spellcasting.spellAttkBonus;
+        /*if (!character.classObj.selectedCantrips) {
+             character.classObj.selectedCantrips = [];
+        }
+        if (character.raceObj && character.raceObj.cantrip) {
+            character.classObj.selectedCantrips.push(character.raceObj.cantrip);
+            character.classObj.selectedCantrips.sort();
+        }*/
         if (character.classObj.selectedCantrips) {
-            character.classObj.selectedCantrips = character.classObj.selectedCantrips.join(', ');
+            character.classObj.selectedCantrips = character.classObj.selectedCantrips.join(', ');   // convert to string
         }
     }
 

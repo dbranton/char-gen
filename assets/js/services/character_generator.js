@@ -11,7 +11,7 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
         this.raceObj = null;
         this.classObj = null; // contains subclasses property
         this.background = null;   // & background.skills
-        this.selectedSkills = [],
+        //this.selectedSkills = [], // now in classObj
         this.selectedLanguages = null,
         //this.proficientSkills = '', // same as selectedSkills except in string form
         this.skills = [{"name":"Acrobatics","ability":"Dex","val":0,"proficient":false,"disabled":true},{"name":"Animal Handling","ability":"Wis","val":0,"proficient":false,"disabled":true},{"name":"Arcana","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Athletics","ability":"Str","val":0,"proficient":false,"disabled":true},{"name":"Deception","ability":"Cha","val":0,"proficient":false,"disabled":true},{"name":"History","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Insight","ability":"Wis","val":0,"proficient":false,"disabled":true},{"name":"Intimidation","ability":"Cha","val":0,"proficient":false,"disabled":true},{"name":"Investigation","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Medicine","ability":"Wis","val":0,"proficient":false,"disabled":true},{"name":"Nature","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Perception","ability":"Wis","val":0,"proficient":false,"disabled":true},{"name":"Performance","ability":"Cha","val":0,"proficient":false,"disabled":true},{"name":"Persuasion","ability":"Cha","val":0,"proficient":false,"disabled":true},{"name":"Religion","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Sleight of Hand","ability":"Dex","val":0,"proficient":false,"disabled":true},{"name":"Stealth","ability":"Dex","val":0,"proficient":false,"disabled":true},{"name":"Survival","ability":"Wis","val":0,"proficient":false,"disabled":true}];
@@ -48,9 +48,11 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
                         }
                         that.updateSkillScore(skill.name);
                         if (isAdded) {  // add skill
-                            that.selectedSkills.push(skill.name);
-                            that.selectedSkills.sort(); // no need to sort a spliced array
-                            that.numSkillsLeft--;
+                            if (that.classObj && that.classObj.selectedSkills.indexOf(skill.name) === -1) {
+                                that.classObj.selectedSkills.push(skill.name);
+                                that.classObj.selectedSkills.sort(); // no need to sort a spliced array
+                                that.numSkillsLeft--;
+                            }
                             if (that.numSkillsLeft === 0) {
                                 enabledSkills = [];
                                 that.skills.forEach(function(skill) {
@@ -61,7 +63,7 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
                                 that.enableSkills(false);  // then disable all skills except the checked ones
                             }
                         } else {    // remove skill
-                            that.selectedSkills.splice(that.selectedSkills.indexOf(skill.name), 1); // remove skill
+                            that.classObj.selectedSkills.splice(that.classObj.selectedSkills.indexOf(skill.name), 1); // remove skill
                             that.numSkillsLeft++;
                             if (that.numSkillsLeft === 1) {
                                 that.enableSkills(enabledSkills);    // reenable proficient skills that were disabled
@@ -121,10 +123,14 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
         };
         var profBonus = 0;
         var that = this;
+        var selectedExpertise = this.classObj ? this.classObj.selectedExpertise : null;    // array/null
         this.skills.forEach(function(skill, i) {
             if (!skillName || skill.name === skillName) {
                 profBonus = skill.proficient ? that.profBonus : 0;
                 that.skills[i].val = profBonus + that.ability[abilityMapper[skill.ability]].mod;
+                if (selectedExpertise && selectedExpertise.indexOf(skill.name) !== -1) {
+                    that.skills[i].val += profBonus;
+                }
                 if (skill.name === "Perception") {
                     that.passivePerception = 10 + that.skills[i].val;   // handle passive perception
                 }
@@ -165,6 +171,9 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
         }
         this.updateSkillScore();    // called to update because modifier changes might affect scores
         // update spellcasting stats if any
+        if (this.raceObj && this.raceObj.spellcasting && (!ability || this.raceObj.spellcasting.spellAbility === ability)) {
+            this.handleSpellcasting('raceObj');
+        };
         if (this.classObj && this.classObj.spellcasting && (!ability || this.classObj.spellcasting.spellAbility === ability)) {
             this.handleSpellcasting();
         }
@@ -232,7 +241,7 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
     Character.prototype.resetRacialBonuses = function() {
         var diff = 0;
         var that = this;
-        ABILITIES.forEach(function(ability) {
+        angular.forEach(ABILITIES, function(ability) {
             diff = that.ability[ability].max - MAX_ABILITY; // ex: 0, 1, or 2
             if (diff > 0) {
                 that.ability[ability].score -= diff;
@@ -242,9 +251,10 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
             }
         });
     };
-    Character.prototype.handleSpellcasting = function() {
-        this.classObj.spellcasting.spellSaveDC = 8 + this.profBonus + this.ability[this.classObj.spellcasting.spellAbility].mod;
-        this.classObj.spellcasting.spellAttkBonus = this.profBonus + this.ability[this.classObj.spellcasting.spellAbility].mod;
+    Character.prototype.handleSpellcasting = function(objType) {    // classObj or raceObj
+        var type = objType ? objType : 'classObj';
+        this[type].spellcasting.spellSaveDC = 8 + this.profBonus + this.ability[this[type].spellcasting.spellAbility].mod;
+        this[type].spellcasting.spellAttkBonus = this.profBonus + this.ability[this[type].spellcasting.spellAbility].mod;
     };
     Character.prototype.handleFeatureBonuses = function(featureBonus) {
         var bonusArray = [], characterArray = [], that = this;
@@ -296,10 +306,43 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
                     that[prop] = that[prop].join(', ')
                 } else if (prop === 'skills') {
                     that.updateSkillProficiency(featureBonus[prop], true, true);
+                } else if (prop === 'cantrips') {
+                    that.classObj.numCantrips = parseInt(featureBonus[prop]);
+                } else if (prop === 'bonus_cantrip') {  // assume this always comes before spellcasting if it exists
+                    bonusArray = featureBonus[prop].split(', ');    // 'Thaumaturgy, cha' becomes an ['Thaumaturgy', 'cha']
+                    //if (that.classObj && that.classObj.spellcasting) {
+                        // do nothing
+                    //} else {
+                        that.raceObj.spellcasting = {};
+                        that.raceObj.spellcasting.spellAbility = bonusArray[1];
+                        that.handleSpellcasting('raceObj');
+                        that.raceObj.cantrip = bonusArray[0];
+                    //}
+                } else if (prop === 'bonus_cantrip_choice' && that.raceObj && that.raceObj.cantrip) {
+                    that.raceObj.spellcasting = {};
+                    that.raceObj.spellcasting.spellAbility = featureBonus[prop];    // ex: 'int'
+                    that.handleSpellcasting('raceObj');
                 } else if (prop === 'spellcasting') {
                     that.classObj.spellcasting = {};
                     that.classObj.spellcasting.spellAbility = featureBonus[prop];    //ABILITY_MAPPER[featureBonus[prop]];
+                    if (that.raceObj && that.raceObj.spellcasting &&
+                            that.raceObj.spellcasting.spellAbility === that.classObj.spellcasting.spellAbility) {  // the race's bonus cantrip spell ability is the same as the spellcasting classes' spell ability
+                        if (!that.classObj.selectedCantrips) {
+                            that.classObj.selectedCantrips = [];
+                        }
+                        that.classObj.selectedCantrips.push(that.raceObj.cantrip);
+                        that.classObj.selectedCantrips.sort();
+                        that.raceObj.spellcasting = null;
+                    }
                     that.handleSpellcasting();
+                } else if (prop === 'expertise') {
+                    var expertiseArr = that.classObj.selectedSkills; //angular.copy(that.selectedSkills);
+                    bonusArray = featureBonus[prop].split(', ');    // ex: "2, Thieves' Tools"
+                    if (expertiseArr.indexOf(bonusArray[1]) === -1) {
+                        expertiseArr.push(bonusArray[1]);
+                    }
+                    that.classObj.numExpertise = bonusArray[0]; // ex: ['Acrobatics', ... , 'Thieves' Tools']
+                    that.classObj.expertiseList = expertiseArr;
                 }
                 /*else if (prop === 'languages') {    // taken care of by determineRace
                     that.defaultLanguages = featureBonus[prop]; // string
@@ -360,6 +403,7 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
         this.initiative = this.ability.dex.mod;
         this.armorClass = 10 + this.ability.dex.mod;
         this.numSkillsLeft = parseInt(this.classObj.num_skills);
+        this.classObj.selectedSkills = [];
     };
     // Handles combining background and tool skills
     Character.prototype.handleTools = function() {   // TODO: Refactor
@@ -463,32 +507,11 @@ charGenService.factory('charGenFactory', function($http, localStorageService) {
             character.determineLevelBonus(charLevel);
             return character;
         },
-        /*resetCharacter: function() {    // without changing ability scores, classObj, name, profBonus, level, or skills
-            var charLevel = character.level,
-                charAbilities = character.ability,
-                profBonus = character.profBonus,
-                skills = character.skills,
-                name = character.name,
-                raceObj = character.raceObj,
-                classObj = character.classObj;
-            character = angular.copy(copy);
-            character.level = charLevel;
-            character.ability = charAbilities;
-            character.profBonus = profBonus;
-            character.skills = skills;
-            character.name = name;
-            character.raceObj = raceObj;
-            character.classObj = classObj;
-            return character;
-        },*/
         returnStoredCharacter: function() {
             return localStorageService.get('character');
         },
         storeCharacter: function() {
             localStorageService.set('character', JSON.stringify(character));
-        },
-        checkIfLoggedIn: function() {
-            return $http.get('user/checkIfLoggedIn');
         },
         getLanguages: function() {
             return returnHttpProp('/json_get_languages');
