@@ -62,6 +62,14 @@ class User_model extends CI_Model {
             }
             $classFeatureIds .= $classFeature->id;
         }
+        $spellIds = '';
+        // TODO: TEST THIS
+        foreach ($character->classObj->selectedSpells as $spell) {
+            if ($spellIds != '') {
+                $spellIds .= ', ';
+            }
+            $spellIds .= $spell->id;
+        }
         $size = $character->size;
         $speed = $character->speed;
         $backgroundName = $character->background->name;
@@ -244,6 +252,7 @@ class User_model extends CI_Model {
             'survival' => $survival,
             'senses' => $passivePerception,
             'expertise' => $expertise,
+            'spells' => $spellIds,
             'spell_ability' => $spellAbility,
             'spell_save_dc' => $spellSaveDC,
             'spell_attk_bonus' => $spellAttkBonus,
@@ -256,7 +265,6 @@ class User_model extends CI_Model {
         //return $data;   // for testing only
         // TODO: uncomment later
         $this->db->insert('character_table', $data);
-        //$this->db->insert_batch('character_features', $racialTraits); // no longer needed
     }
 
     public function get_characters() {
@@ -348,6 +356,7 @@ class User_model extends CI_Model {
             $character['traits'] = $this->_getRacialTraits($row->racial_trait_ids);
             $character['features'] = $this->_getClassFeatures($row->class_feature_ids, $row->cantrips, $row->expertise);
             $character['background'] = $this->_getBackground($row->background);
+            $character['spells'] = $this->_getSpells($row->spells);
             $character['spellcasting'] = !empty($row->spell_ability) ? $ability_mapper[$row->spell_ability] : NULL;
             $character['spell_save_dc'] = !empty($row->spell_save_dc) ? $row->spell_save_dc : NULL;
             $character['spell_attk_bonus'] = $row->spell_attk_bonus >= 0 ? '+' . $row->spell_attk_bonus : $row->spell_attk_bonus;
@@ -384,12 +393,15 @@ class User_model extends CI_Model {
     }
 
     private function _getFeatureName($featureId) {
-        $sql = "SELECT features_table.name" .
+        $sql = "SELECT features_table.name, features_table.parent_name" .
             " FROM features_table" .
             " WHERE id = '" . $featureId . "'";
         $query = $this->db->query($sql);
         if ($query->num_rows() > 0) {
             $row = $query->row();
+            if (!empty($row->parent_name)) {
+                return $row->parent_name . ' (' . $row->name . ')';
+            }
             return $row->name;
         }
     }
@@ -409,7 +421,6 @@ class User_model extends CI_Model {
                 } else {
                     $classFeature['benefit'] = $row->benefit;
                 }
-                // TODO: test this
                 if ($row->type == 'expertise') {
                     $classFeature['benefit'] = 'Your proficiency bonus with the following are doubled: ' . $expertise;
                 }
@@ -433,6 +444,30 @@ class User_model extends CI_Model {
             $background['trait_desc'] = $row->trait_desc;
             $background['tools'] = $row->tools;
             return $background;
+        }
+    }
+
+    private function _getSpells($spellIds) {
+        $sql = "SELECT spells_table.*" .
+            " FROM spells_table" .
+            " WHERE id IN (" . $spellIds . ")";
+        $query = $this->db->query($sql);
+        if ($query->num_rows() > 0) {
+            $spells = array();
+            foreach ($query->result() as $row) {
+                $spell['name'] = $row->name;
+                $spell['level'] = 'Level ' . $row->level . ' Spells';
+                if (isset($spells[$spell['level']])) {
+                    array_push($spells[$spell['level']], $spell['name']);
+                } else {
+                    $spells[$spell['level']] = array($spell['name']);
+                }
+            }
+            foreach ($spells as $key=>$spells_by_level) {
+                sort($spells_by_level);
+                $spells[$key] = implode(", ", $spells_by_level);
+            }
+            return $spells;
         }
     }
 }

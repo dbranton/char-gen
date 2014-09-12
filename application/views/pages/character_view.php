@@ -134,6 +134,12 @@
                 <th>Cantrips: </th>
                 <td><?php echo $character['cantrips']; ?></td>
             </tr>
+            <?php foreach ($character['spells'] as $level => $spells_by_level): ?>
+            <tr>
+                <th><?php echo $level; ?></th>
+                <td><?php echo $spells_by_level; ?></td>
+            </tr>
+            <?php endforeach; ?>
         </table>
     </div>
     <?php endif; ?>

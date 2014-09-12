@@ -1,6 +1,6 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
-class Classes extends CI_Controller {
+class Class_Tables extends CI_Controller {
 
     public function __construct() {
         parent::__construct();
@@ -10,25 +10,16 @@ class Classes extends CI_Controller {
         $this->load->model('class_model');
         $data['classes'] = $this->class_model->getClasses();
         $data['title'] = 'Classes';
-        $data['main_content'] = 'pages/classes_view';
+        $data['main_content'] = 'pages/classes';  // races view works the same for classes
         $data['type'] = '';
         $this->load->view('template', $data);
     }
 
-    public function className($class = NULL) {
-        if (!is_null($class)) {
-            $this->_addClassData($class);
-        }
-    }
-
-    private function _addClassData($class) {
-        $this->load->model('class_model');
-        $data['title'] = $class;
-        $data['class'] = $this->class_model->getClasses($class);
-        $data['main_content'] = 'pages/class_view';
+    public function wild_magic_table() {
+        $data['title'] = 'Wild Magic Surge Table';
+        $data['main_content'] = 'pages/wild_magic_table';
         $data['type'] = '';
         $this->load->view('template', $data);
     }
-
 }
 ?>

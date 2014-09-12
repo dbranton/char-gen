@@ -19,22 +19,21 @@
 ?>
 <!-- Nav tabs -->
 <ul class="nav nav-tabs" role="tablist">
-    <li class="active"><a href="#cantrip" role="tab" data-toggle="tab">Cantrip</a></li>
-    <li><a href="#level1" role="tab" data-toggle="tab">Level 1</a></li>
-    <li><a href="#level2" role="tab" data-toggle="tab">Level 2</a></li>
-    <li><a href="#level3" role="tab" data-toggle="tab">Level 3</a></li>
+    <?php
+        for ($i=0; $i<count($spells); $i++) {
+            $active = $i == 0 ? 'active' : '';
+            $name = $i == 0 ? 'Cantrip' : 'Level ' . $i;
+            echo '<li class="' . $active . '"><a href="#level' . $i . '" role="tab" data-toggle="tab">' . $name . '</a></li>';
+        }
+    ?>
 </ul>
 
 <!-- Tab panes -->
 <div class="tab-content">
-    <div class="tab-pane active" id="cantrip">
-        <?php echoSpellsByLevel($spells, 0); ?>
-    </div>
-    <div class="tab-pane" id="level1">
-        <?php echoSpellsByLevel($spells, 1); ?>
-    </div>
-    <div class="tab-pane" id="level2">
-        <?php echoSpellsByLevel($spells, 2); ?>
-    </div>
-    <div class="tab-pane" id="level3">Coming soon...</div>
+    <?php for ($i=0; $i<count($spells); $i++) {
+        $active = $i == 0 ? ' active' : '';
+        echo '<div class="tab-pane' . $active . '" id="level' . $i . '">';
+        echo echoSpellsByLevel($spells, $i);
+        echo '</div>';
+    } ?>
 </div>

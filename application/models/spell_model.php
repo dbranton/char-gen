@@ -1,22 +1,50 @@
 <?php
 
 class Spell_model extends CI_Model {
-
-    public function getSpells() {
+    public $classId = NULL;
+    public $term = '';
+    public function getSpells($classId = NULL, $maxSpellLevel = 10, $term = '') {
+        $this->classId = $classId;
+        $this->term = $term;
         $spells = array();
-        $cantrips = $this->_getSpellsByLevel(0);
-        $level1Spells = $this->_getSpellsByLevel(1);
-        $level2Spells = $this->_getSpellsByLevel(2);
-        array_push($spells, $cantrips, $level1Spells, $level2Spells);
+        for ($i=0; $i<=intval($maxSpellLevel); $i++) {
+            if (intval($maxSpellLevel) < 10 && $i == 0) {
+                $i++;   // skip cantrips
+            }
+            $spellsByLevel = $this->_getSpellsByLevel($i);
+            if (count($spellsByLevel) > 0 || $term !== '') {
+                array_push($spells, $spellsByLevel);
+            } else {
+                break;
+            }
+        }
         return $spells;
     }
 
-    private function _getSpellsByLevel($level) {
-        $sql = "SELECT * FROM spells_table WHERE level = '" . $level . "' ORDER BY name ASC";
+    public function getClassName($classId) {
+        $sql = "SELECT name FROM class_table WHERE id = '" . $classId . "'";
         $query = $this->db->query($sql);
         if ($query->num_rows() > 0) {
-            $spells = array();
+            $row = $query->row();
+            return $row->name;
+        }
+    }
+
+    private function _getSpellsByLevel($level) {
+        if (is_null($this->classId)) {
+            $sql = "SELECT * FROM spells_table WHERE level = '" . $level . "' ORDER BY name ASC";
+        } else {
+            $sql = "SELECT spells_table.*" .
+                " FROM spells_table" .
+                " JOIN class_spells" .
+                " ON class_spells.spell_id = spells_table.id" .
+                " WHERE level = '" . $level . "' AND class_id = '" . $this->classId . "' AND name LIKE '%" . $this->term . "%' ORDER BY name ASC";
+        }
+        $query = $this->db->query($sql);
+        $spells = array();
+        if ($query->num_rows() > 0) {
             foreach ($query->result() as $row) {
+                $spell['id'] = $row->id;
                 $spell['name'] = $row->name;
                 $spell['level'] = $row->level;  //$row->level == '0' ? 'Cantrip' : 'Level ' . $row->level;
                 $spell['desc'] = $row->description;
@@ -31,8 +59,8 @@ class Spell_model extends CI_Model {
                 $spell['duration'] = $row->duration;
                 array_push($spells, $spell);
             }
-            return $spells;
         }
+        return $spells;
     }
 }
 ?>

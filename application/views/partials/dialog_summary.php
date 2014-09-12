@@ -48,7 +48,7 @@
                         </tr>
                         <tr>
                             <th>Hit Points: </th>
-                            <td>{{character.hitPoints}}</td>
+                            <td>{{character.hitPointsDesc}}</td>
                         </tr>
                         <tr>
                             <th>Proficiency Bonus: </th>
@@ -146,9 +146,13 @@
                                 <th>Spell Attack Bonus: </th>
                                 <td>{{character.classObj.spellcasting.spellAttkBonus}}</td>
                             </tr>
-                            <tr>
+                            <tr ng-if="character.classObj.selectedCantrips">
                                 <th>Cantrips: </th>
-                                <td>{{character.classObj.selectedCantrips}}</td>
+                                <td><i>{{character.classObj.selectedCantrips}}</i></td>
+                            </tr>
+                            <tr ng-repeat="spellByLevel in character.classObj.selectedSpellsByLevel">
+                                <th>Level {{$index+1}} Spells: </th>
+                                <td><i>{{spellByLevel}}</i></td>
                             </tr>
                         </table>
                         <table class="table table-condensed" ng-if="character.raceObj.spellcasting">
@@ -164,7 +168,7 @@
                                 <th>Spell Attack Bonus: </th>
                                 <td>{{character.raceObj.spellcasting.spellAttkBonus}}</td>
                             </tr>
-                            <tr>
+                            <tr ng-if="character.raceObj.cantrip">
                                 <th>Cantrips: </th>
                                 <td>{{character.raceObj.cantrip}}</td>
                             </tr>
@@ -196,7 +200,7 @@
                 <div class="col-md-4"> <!-- background feature -->
                     <h4>Background Feature</h4>
                     <dl>
-                        <dt>{{character.background.name}}</dt>
+                        <dt>{{character.background.trait_name}}</dt>
                         <dd>{{character.background.desc}}</dd>
                     </dl>
                 </div>

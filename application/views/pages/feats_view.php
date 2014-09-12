@@ -12,11 +12,7 @@ if (is_array($feats)):
             echo '<p><b>Prerequisite: </b>' . $feat['prereq'] . '</p>';
         }
         if ($feat['benefit']) {
-            //echo '<p><b>Benefit: </b>' . $feat['benefit'] . '</p>';
             echo '<div>' . $feat['benefit'] . '</div>';
-        }
-        if ($feat['effect']) {
-            echo '<p><b>Effect: </b>' . $feat['effect'] . '</p>';
         }
         echo '<a class="pull-right" href="#top">Back to top</a>';
         echo '<div class="clearfix"></div>';

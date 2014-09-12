@@ -14,7 +14,9 @@
                 foreach ($query->result() as $row) {
                     $class['name'] = $row->name;
                     $class['desc'] = $row->desc;
+                    $class['short_desc'] = $row->short_desc;
                     $class['hit_dice'] = $row->hit_dice;
+                    $class['primary_ability'] = $row->primary_ability;
                     $class['armor_prof'] = $row->armor_shield_prof;
                     $class['weapon_prof'] = $row->weapon_prof;
                     $class['tools'] = $row->tools;
@@ -90,7 +92,7 @@
             WHERE level IS NOT NULL AND class_table.active = '1' ORDER BY class_table.name
          *
          */
-        private function _getClassLevelFeatures($id, $isFeatureId = FALSE, $classId = NULL) {    // if isFeatureId is false, then use classId
+        private function _getClassLevelFeatures($id, $isFeatureId = FALSE) {    // if isFeatureId is false, then use classId
             /*$sql = "SELECT DISTINCT features_table.*" . //, class_features.*" .
                 " FROM features_table" .
                 " JOIN class_features" .
@@ -103,12 +105,12 @@
                     " FROM features_table" .
                     " JOIN class_table" .
                     " ON class_table.id = features_table.class_id" .
-                    " WHERE features_table.class_id = '" . $id . "' AND features_table.level IS NOT NULL AND parent_id = '0'" .
+                    " WHERE features_table.class_id = '" . $id . "' AND features_table.level IS NOT NULL AND (parent_id = '0' OR parent_id = '')" .
                     " ORDER BY features_table.level, name";
             } else {
                 $sql = "SELECT features_table.*" .
                     " FROM features_table" .
-                    " WHERE features_table.parent_id = '" . $id . "'" .
+                    " WHERE FIND_IN_SET('" . $id . "', features_table.parent_id) > 0" .  // LIKE '%" . $id . "%'" .
                     " ORDER BY features_table.name";
             }
             $query = $this->db->query($sql);
@@ -124,15 +126,18 @@
                         $class_feature['benefit'] = $this->_getClassFeatureBenefits($row->id);
                         $class_feature['benefit_stat'] = $row->benefit;
                         $class_feature['benefit_value'] = $row->benefit_value;
+                        if (isset($row->parent_name)) {
+                            $class_feature['parent_name'] = $row->parent_name;
+                        }
                         if ($class_feature['benefit_stat'] == 'cantrips') {
-                            $class_feature['cantrips'] = $this->_getCantrips($classId); // get cantrips list based on classId
+                            $class_feature['cantrips'] = $this->_getCantrips($class_feature['benefit_value']); // get cantrips list based on classId
                         }
                         if ($row->type == 'subclass') {
                             $class_feature['subclasses'] = $this->_getSubClasses($row->id);
                             //$this->_getSubClassDesc($row->id);
                         }
                         if ($row->type == 'super_feature') {
-                            $class_feature['subfeatures'] = $this->_getClassLevelFeatures($row->id, TRUE, $id);
+                            $class_feature['subfeatures'] = $this->_getClassLevelFeatures($row->id, TRUE);
                         }
                         array_push($features, $class_feature);
                         //$features[$class_feature['id']] = $class_feature; // was [$row->name] but can't because names are no longer unique
@@ -189,7 +194,8 @@
                 " ON subclass_features.class_id = class_table.id" .
                 " JOIN features_table" .
                 " ON features_table.id = subclass_features.feature_id" .
-                " WHERE subclass_features.feature_id = '" . $subclassId . "' AND active = '1'";
+                " WHERE subclass_features.feature_id = '" . $subclassId . "' AND active = '1'" .
+                " ORDER BY NAME ASC";
             $query = $this->db->query($sql);
             if ($query->num_rows() > 0) {
                 $subclasses = array();
@@ -209,7 +215,7 @@
             }
         }
 
-        private function _getSubClassFeatures($subclassFeatureId) {
+        private function _getSubClassFeatures($subclassId) {
             /*$sql = "SELECT features_table.*, class_features.*" .
                 " FROM features_table" .
                 " JOIN class_features" .
@@ -224,11 +230,13 @@
                 //" ON class_features.feature_id = features_table.id" .
                 " JOIN class_table" .
                 " ON class_table.id = features_table.class_id" . //class_features.class_id" .
-                " WHERE features_table.class_id = '" . $subclassFeatureId . "' ORDER BY features_table.level";
+                " WHERE features_table.class_id = '" . $subclassId . "' AND (parent_id = '0' OR parent_id = '')" .
+                " ORDER BY features_table.level, name";
             $query = $this->db->query($sql);
             if ($query->num_rows() > 0) {
                 $features = array();
                 foreach ($query->result() as $row) {
+                    $class_feature = array();   // reset
                     $class_feature['id'] = $row->id;
                     $class_feature['name'] = $row->name;
                     $class_feature['level'] = $row->level;
@@ -236,7 +244,9 @@
                     $class_feature['benefit'] = $this->_getClassFeatureBenefits($row->id);
                     $class_feature['benefit_stat'] = $row->benefit;
                     $class_feature['benefit_value'] = $row->benefit_value;
-                    //$features[$row->name] = $class_feature;
+                    if ($row->type == 'super_feature') {    // eldritch knight
+                        $class_feature['subfeatures'] = $this->_getClassLevelFeatures($row->id, TRUE);
+                    }
                     array_push($features, $class_feature);
                 }
                 return $features;

@@ -32,6 +32,10 @@ class Dialog extends CI_Controller {
         $this->load->view('partials/dialog_spells');
     }
 
+    public function multipleDialog() {
+        $this->load->view('partials/dialog_features');
+    }
+
     public function summary() {
         $this->load->view('partials/dialog_summary');
     }

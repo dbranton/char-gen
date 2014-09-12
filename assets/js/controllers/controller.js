@@ -13,15 +13,7 @@ charModule.run(function($rootScope) {
 });
 
 
-// TODO: move somewhere else
-Array.prototype.getIndexBy = function (name, value) {
-    for (var i = 0; i < this.length; i++) {
-        if (this[i][name] == value) {
-            return i;
-        }
-    }
-    return -1;
-};
+
 /**
  * Angular Controller
  * @param $scope
@@ -37,6 +29,7 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
     $scope.searchText = '';
     $scope.subclasses = [];
     $scope.storedCharacter = null;
+    $scope.select2Spells = charGenFactory.returnSelect2SpellsConfig();
     var opts = {
         backdrop: true,
         keyboard: true,
@@ -135,16 +128,15 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
         openDialog();
     };
 
-    $scope.openFeatureDialog = function() {
-        var that = this;
-        var featureName = this.selectedFeature.name;
-        opts.templateUrl = 'dialog/classDialog';
+    $scope.openFeatureDialog = function(selectedFeature, type) {
+        opts.templateUrl = 'dialog/multipleDialog'; //'dialog/classDialog';
         opts.controller = DialogFeatureController;
         opts.resolve = {
-            features: function() { return angular.copy($scope.character.classObj.featureChoices); },
-            index: function() { return that.$index; },
-            selectedFeatures: function() { return $scope.selectedFeatures; },
-            featureName: function() { return featureName; }
+            features: function() { return angular.copy(selectedFeature.choices); },    //$scope.character.classObj.featureChoices
+            index: function() { return selectedFeature.index; },
+            type: function() { return type; },
+            //selectedFeatures: function() { return $scope.character.selectedFeatures; },
+            max: function() { return selectedFeature.max; }
         };
         openDialog();
     };
@@ -154,6 +146,16 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
         opts.controller = DialogCantripController;
         opts.resolve = {
             cantrips: function() { return angular.copy($scope.character.classObj.cantrips); },
+            numCantrips: function() { return $scope.character.classObj.numCantrips; }
+        };
+        openDialog();
+    };
+
+    $scope.openSubclassCantripDialog = function() {
+        opts.templateUrl = 'dialog/spellDialog';
+        opts.controller = DialogCantripController;
+        opts.resolve = {
+            cantrips: function() { return angular.copy($scope.character.classObj.subclassObj.cantrips); },
             numCantrips: function() { return $scope.character.classObj.numCantrips; }
         };
         openDialog();
@@ -178,11 +180,11 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
         openDialog('lg');
     };
 
-    $scope.$watch('isMobile', function(newVal) {
+    /*$scope.$watch('isMobile', function(newVal) {
        if (newVal) {
            $('.select2-input').prop('readonly', true);  // doesn't work
        }
-    });
+    });*/
 
     $scope.$watch('character.selectedLanguages', function(newValue, oldValue) {   // triggered whenever a language is selected
         if ((newValue || (!newValue && oldValue)) && $scope.character.raceObj) {   //(newValue || oldValue)
@@ -208,22 +210,10 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
            $scope.availableLanguages = languageList;
        }
     });
-    $scope.$watch('character.numLanguages', function(newValue) {
-        if (angular.isDefined(newValue)) {//} && $scope.character.background) {
-            $scope.character.selectedLanguages = $scope.character.selectedLanguages || [];
-            $scope.select2Languages = newValue; // represents the 'max' attribute for select2
-            $scope.numLanguagesLeft = $scope.character.numLanguages - $scope.character.selectedLanguages.length;
-            //$scope.selectedLanguages.length = newValue; //determineNumItems('#chosenLanguages', newValue);
-        }
-    });
 
     // determines points left
     $scope.incrementAbility = function(ability, value) {    // value can only be 1 or -1
         $scope.character.modifyAbilityScore(ability, value);
-    };
-
-    $scope.changeExpertise = function() {
-        $scope.character.updateSkillScore();
     };
 
     var LANGUAGE_LIST = [];
@@ -270,32 +260,61 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
         $scope.openNewCharDialog();
     };
 
-    $scope.broadcastObj = function(arr, name, prop, index) {
+    $scope.broadcastObj = function(arr, name, prop) {
         var obj = {};
         if (name) {
             for (var i=0, ilen=arr.length; i<ilen; i++) {
                 if ((prop === 'race' && arr[i].subrace.name === name) || arr[i].name === name) { // assuming arr has a name property
                     obj.checked = true;
                     obj[prop] = angular.copy(arr[i]);
-                    if (!isNaN(index)) {
-                        obj.featureIndex = index;
-                    }
                     $scope.$broadcast('handleBroadcast', obj);
                     break;
                 }
             }
         }
     };
-    $scope.broadcastNonObj = function(name, prop) {  // for selecting cantrips (and maybe languages)
-        var string = name;
-        if (angular.isArray(name)) {
-            string = name.join(', ');
+    $scope.broadcastArray = function(selectedObj, prop, type) { // for selecting (multiple) feature choices
+        var selectedArr = [], broadcastObj = {checked: true};
+        if (angular.isArray(selectedObj.name) && angular.isArray(selectedObj.choices)) {
+            angular.forEach(selectedObj.choices, function(obj) {
+                angular.forEach(selectedObj.name, function(item) {
+                    if (item === obj.name) {
+                        selectedArr.push(obj);
+                    }
+                });
+            });
+            broadcastObj[prop] = selectedArr;
+            broadcastObj.featureIndex = selectedObj.index;
+            broadcastObj.type = type;
+            $scope.$broadcast('handleBroadcast', broadcastObj);
         }
+    };
+    $scope.broadcastNonObj = function(name, prop) {  // for selecting cantrips (and maybe languages)
+        var string = name;  // for cantrips, its an array, for bonus cantrip, its a string
         var obj = {
             checked: true
         };
         obj[prop] = string;
         $scope.$broadcast('handleBroadcast', obj);
+    };
+
+    var getFeatureChoices = function(choices, level, type, index) {  // type is 'classArr' or 'subclassArr'
+        var tempArr = [];
+        angular.forEach(choices, function(feature) {
+            if (feature.level <= level && feature.benefit_stat !== 'bonus_feature') {
+                tempArr.push(feature);
+            } else if (feature.benefit_stat === 'bonus_feature') {   // ex: Elemental Attunement
+                var broadcastObj = {checked: true}; // simulate selecting a bonus feature
+                broadcastObj.selectedFeatures = [feature];
+                broadcastObj.featureIndex = index;
+                broadcastObj.type = type;
+                $scope.$broadcast('handleBroadcast', broadcastObj);
+                $scope.character.classObj.subclassObj.bonusFeature = feature;
+                $scope.character.classObj.subclassObj.bonusFeature.type = type;
+                $scope.character.classObj.subclassObj.bonusFeature.index = index;
+            }
+        });
+        return tempArr;
     };
 
     $scope.$on('handleBroadcast', function(event, args) {
@@ -350,10 +369,10 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                         if (trait.cantrips && !args.selectedBonusCantrip) {    // trait.cantrips is the cantrip list
                             $scope.character.raceObj.cantrips = angular.copy(trait.cantrips);   // populate cantrips list
                         }
-                        if ($scope.character.classObj && $scope.character.classObj.selectedCantrips) {
+                        if ($scope.character.classObj && $scope.character.classObj.selectedCantrips && $scope.character.raceObj.cantrips) {
                             for (var i=0, ilen=$scope.character.classObj.selectedCantrips.length; i<ilen; i++) {
                                 if ($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]) !== -1) {
-                                    $scope.character.raceObj.cantrips.splice($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]), 1);  // remove selected cantrips (if any) from bonus cantrips list
+                                    $scope.character.raceObj.cantrips.splice($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]), 1);  // filter out selected cantrips (if any) from bonus cantrips list
                                 }
                             }
                         }
@@ -369,22 +388,26 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                 if (args.clazz) {
                     $scope.character.classObj = $scope.clazz;   // used to determine if class contains subclasses
                     $scope.selectedFeature = null;    // reset
-                    $scope.selectedFeatures = [];       // reset // for featureChoices
+                    //$scope.character.selectedFeatures = [];       // reset // for featureChoices
+                    $scope.character.classObj.selectedFeatures = [];    // reset
+                    $scope.selectedChoices = {classArr: [], subclassArr: []}; //[];
                     $scope.character.determineClass();
                 }
                 //$scope.character.className = args.clazz.name;
-                if ($scope.clazz.features) {
+                if (angular.isArray($scope.clazz.features)) {
                     $scope.character.classObj.classFeatures = [];    // reset    //$scope.character.classFeatures = [];    // reset
                     //$scope.character.featureIds = [];  // reset
                     $scope.character.classObj.subclasses = [];    // reset
-                    $scope.clazz.features.forEach(function(featureObj, idx) {
+                    var featureChoiceIdx = 0;   // reset
+                    angular.forEach($scope.clazz.features, function(featureObj, idx) {
                         if (featureObj.level <= $scope.character.level) {
-                            var tempBenefit = '', classFeatureId = '';
+                            var tempBenefit = '';
                             if (featureObj.subclasses) {
+                                $scope.character.classObj.subclassName = featureObj.name;
                                 $scope.character.classObj.subclasses = featureObj.subclasses;
                             }
-                            if (featureObj.benefit) {
-                                featureObj.benefit.forEach(function(benefitObj) {
+                            if (angular.isArray(featureObj.benefit)) {
+                                angular.forEach(featureObj.benefit, function(benefitObj) {
                                     if (benefitObj.level <= $scope.character.level) {
                                         tempBenefit = benefitObj;
                                     }
@@ -394,111 +417,155 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                                 }
                                 if (tempBenefit.benefit_stat) {
                                     features[tempBenefit.benefit_stat] = tempBenefit.benefit_value;
+                                    // give dynamic name for expertise label
+                                    if (args.clazz && tempBenefit.benefit_stat === 'expertise') {
+                                        $scope.character.classObj.expertise = {};
+                                        $scope.character.classObj.expertise.label = featureObj.name;
+                                    }
+                                }
+                                // handle features that provide choices
+                                if (tempBenefit.benefit_stat === 'feature_choice') {
+                                    if (args.clazz) {
+                                        $scope.character.classObj.selectedFeatures[featureChoiceIdx] = {'name': [], 'max': tempBenefit.benefit_value, 'label': featureObj.name, 'choices': getFeatureChoices(featureObj.subfeatures, $scope.character.level, 'classArr', featureChoiceIdx), 'index': featureChoiceIdx}
+                                        featureChoiceIdx++;
+                                    } else if ($scope.clazz) {  //to account for additional fighting style changing classObj.selectedFeatures
+                                        $scope.character.classObj.selectedFeatures[featureChoiceIdx].max =
+                                            $scope.character.classObj.selectedFeatures[featureChoiceIdx].name.length = tempBenefit.benefit_value;
+                                        if ($scope.selectedChoices['classArr'].length > 0) {
+                                            $scope.selectedChoices['classArr'][featureChoiceIdx].length = tempBenefit.benefit_value;
+                                        }
+                                    }
+                                } else if (angular.isArray(featureObj.subfeatures)) {    // ignore feature_choices
+                                    featureObj.subfeatures.forEach(function(subfeature) {
+                                        if (subfeature.cantrips && !args.selectedCantrips) {    // make sure to not execute when selecting cantrips
+                                            $scope.character.classObj.cantrips = angular.copy(subfeature.cantrips);   // populate cantrips list
+                                        }
+                                        // for cantrips coinciding with high elf's bonus cantrip
+                                        if ($scope.character.raceObj && $scope.character.raceObj.cantrip &&
+                                                $scope.character.classObj.cantrips &&
+                                                $scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1) {
+                                            $scope.character.classObj.cantrips.splice($scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);  // remove bonus cantrip (if any) from cantrips list
+                                        }
+                                        if (angular.isArray(subfeature.benefit)) {
+                                            angular.forEach(subfeature.benefit, function(benefitObj, idx) {
+                                                if (benefitObj.level <= $scope.character.level) {
+                                                    tempBenefit = benefitObj;
+                                                }
+                                            });
+                                            if (tempBenefit.description !== '') {   // adds benefits that have descriptions to classFeatures list
+                                                $scope.character.classObj.classFeatures.push(new KeyValue(tempBenefit.id, subfeature.name, tempBenefit.description));
+                                            }
+                                            if (tempBenefit.benefit_stat) {
+                                                features[tempBenefit.benefit_stat] = tempBenefit.benefit_value;
+                                            }
+                                            tempBenefit = {};   // reset
+                                        }
+                                    });
                                 }
                                 tempBenefit = {};   // reset
                             }
-                            // if parent feature is a choice, set $scope.featureChoices for dialog, else set subfeatures
-                            if (featureObj.benefit_stat === 'feature_choice') {
-                                $scope.character.classObj.featureChoices = featureObj.subfeatures;
-                                if (args.clazz) {
-                                    $scope.selectedFeatures[idx] = {'name': null};    // ng-repeat depends on this array
-                                }
-                            } else if (featureObj.subfeatures) {
-                                featureObj.subfeatures.forEach(function(subfeature) {
-
-                                    if (subfeature.cantrips && !args.selectedCantrips) {    // make sure to not execute when selecting cantrips
-                                        $scope.character.classObj.cantrips = angular.copy(subfeature.cantrips);   // populate cantrips list
-                                    }
-                                    if ($scope.character.raceObj && $scope.character.raceObj.cantrip &&
-                                            $scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1) {
-                                        $scope.character.classObj.cantrips.splice($scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);  // remove bonus cantrip (if any) from cantrips list
-                                    }
-                                    if (subfeature.benefit) {
-                                        subfeature.benefit.forEach(function(benefitObj, idx) {
-                                            if (benefitObj.level <= $scope.character.level) {
-                                                tempBenefit = benefitObj;
-                                            }
-                                        });
-                                        if (tempBenefit.description !== '') {   // adds benefits that have descriptions to classFeatures list
-                                            $scope.character.classObj.classFeatures.push(new KeyValue(tempBenefit.id, subfeature.name, tempBenefit.description));
-                                        }
-                                        if (tempBenefit.benefit_stat) {
-                                            features[tempBenefit.benefit_stat] = tempBenefit.benefit_value;
-                                        }
-                                        tempBenefit = {};   // reset
-                                    }
-                                });
-                            }
-                            /*if (featureObj.benefit_stat) {
-                                features[featureObj.benefit_stat] = featureObj.benefit_value;
-                            }*/
                         }
                     });
                     $scope.currentClassFeatures = $scope.character.classObj.classFeatures;
                 }
             }
-            if (args.subclass || $scope.subclass) {
-                $scope.subclass = args.subclass || $scope.subclass;
+            if (args.subclass || ($scope.character.classObj && $scope.character.classObj.subclassObj)) {
                 if (args.subclass) {
                     $scope.character.classObj.subclassObj = args.subclass;
+                    $scope.character.classObj.subclassObj.selectedFeatures = [];    // reset
+                    $scope.selectedChoices.subclassArr = [];    // reset
+                    $scope.character.classObj.expertise = null;
+                    //$scope.character.resetSkills();
                 }
                 var subclassFeatures = [];
                 // TODO: change subclass property from benefit to features
-                if ($scope.subclass.benefit) {
+                if ($scope.character.classObj.subclassObj.benefit) {
+                    var subclassFeatureChoiceIdx = 0;   // reset
                     //for (var subclassProp in args.subclass.benefit) {
-                    $scope.subclass.benefit.forEach(function(feature) {
+                    angular.forEach($scope.character.classObj.subclassObj.benefit, function(feature) {
                         if (feature.level <= $scope.character.level) {
                             var tempSubclassBenefit = '';
-                            if (args.subclass && feature.benefit_stat === 'feature_choice') {    // if subclass is selected...
-                                $scope.selectedFeatures.push({'name': null});
-                            }
                             if (angular.isArray(feature.benefit)) {
-                                feature.benefit.forEach(function(benefit) {
+                                angular.forEach(feature.benefit, function(benefit) {
                                     if (benefit.level <= $scope.character.level) {
                                         tempSubclassBenefit = benefit;
+                                    }
+                                    if (tempSubclassBenefit.benefit_stat) {
+                                        features[tempSubclassBenefit.benefit_stat] = tempSubclassBenefit.benefit_value;
+                                        // give dynamic name for expertise label
+                                        if (args.subclass && tempSubclassBenefit.benefit_stat.indexOf('selected_expertise') !== -1) {
+                                            $scope.character.classObj.expertise = {};
+                                            $scope.character.classObj.expertise.label = feature.name;
+                                        }
                                     }
                                 });
                                 if (tempSubclassBenefit.description !== '') {
                                     subclassFeatures.push(new KeyValue(tempSubclassBenefit.id, feature.name, tempSubclassBenefit.description));
                                 }
-                                if (tempSubclassBenefit.benefit_stat) {
+                                /*if (tempSubclassBenefit.benefit_stat) {
                                     features[tempSubclassBenefit.benefit_stat] = tempSubclassBenefit.benefit_value;
+                                }*/
+                            }
+                            if (args.subclass) {
+                                if (tempSubclassBenefit.benefit_stat === 'feature_choice') {
+                                    //$scope.character.classObj.featureChoices = feature.subfeatures;
+                                    $scope.character.classObj.subclassObj.selectedFeatures[subclassFeatureChoiceIdx] = {'name': [], 'max': tempSubclassBenefit.benefit_value, 'label': feature.name, 'choices': getFeatureChoices(feature.subfeatures, $scope.character.level, 'subclassArr', subclassFeatureChoiceIdx), 'index': subclassFeatureChoiceIdx};    // ng-repeat depends on this array
+                                    subclassFeatureChoiceIdx++;
+                                }
+                                // handle subfeatures
+                                else if (angular.isArray(feature.subfeatures)) {
+                                    angular.forEach(feature.subfeatures, function(subfeature) {
+                                        if (subfeature.cantrips && !args.selectedCantrips) {    // make sure to not execute when selecting cantrips
+                                            $scope.character.classObj.subclassObj.cantrips = angular.copy(subfeature.cantrips);   // populate cantrips list
+                                        }
+                                        if (angular.isArray(subfeature.benefit)) {
+                                            angular.forEach(subfeature.benefit, function(benefit) {
+                                                if (benefit.level <= $scope.character.level) {
+                                                    tempSubclassBenefit = benefit;
+                                                }
+                                            });
+                                            features[tempSubclassBenefit.benefit_stat] = tempSubclassBenefit.benefit_value;
+                                            if (tempSubclassBenefit.description !== '') {
+                                                subclassFeatures.push(new KeyValue(tempSubclassBenefit.id, subfeature.name, tempSubclassBenefit.description));
+                                            }
+                                        }
+                                        // filter out coinciding cantrips between high elf's bonus cantrip and cantrip list
+                                        if ($scope.character.raceObj && $scope.character.raceObj.cantrip &&
+                                                $scope.character.classObj.subclassObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1) {
+                                            $scope.character.classObj.subclassObj.cantrips.splice($scope.character.classObj.subclassObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);
+                                        }
+                                    });
                                 }
                             }
                         }
                     });
-                    $scope.character.classObj.classFeatures = $scope.currentClassFeatures.concat(subclassFeatures);
+
                 }
             }
-            if (args.selectedFeature || !isNaN($scope.currentFeatureIdx)) {
-                if (args.selectedFeature) { // for displaying feature name in button
-                    $scope.currentFeatureIdx = !isNaN(args.featureIndex) ? args.featureIndex : $scope.currentFeatureIdx;
-                    //$scope.selectedFeatures[$scope.currentFeatureIdx].name = args.selectedFeature.name;
-                    //$scope.selectedFeatures[$scope.currentFeatureIdx].benefit = args.selectedFeature.benefit;
 
-                    $scope.selectedFeatures[$scope.currentFeatureIdx] = {
-                        name: args.selectedFeature.name,
-                        benefit: args.selectedFeature.benefit
-                    };
+            // Handle feature choices
+            if (args.selectedFeatures && !isNaN(args.featureIndex)) {
+                if ($scope.character.classObj.subclassObj && $scope.character.classObj.subclassObj.bonusFeature &&
+                    args.type === $scope.character.classObj.subclassObj.bonusFeature.type &&
+                    args.featureIndex === $scope.character.classObj.subclassObj.bonusFeature.index) {
+                    args.selectedFeatures.unshift($scope.character.classObj.subclassObj.bonusFeature);
                 }
-                $scope.selectedFeatures.forEach(function(selectedFeature) {
-                    if (selectedFeature.benefit) {
-                        var tempFeatureChoice = '';
-                        selectedFeature.benefit.forEach(function(feature) {
-                            if (feature.level <= $scope.character.level) {
-                                tempFeatureChoice = feature;
-                            }
-                        });
-                        $scope.character.classObj.classFeatures.push(new KeyValue(tempFeatureChoice.id, selectedFeature.name, tempFeatureChoice.description));
-                    }
-                });
+                $scope.selectedChoices[args.type][args.featureIndex] = args.selectedFeatures;
+            }
+            if ($scope.character.classObj) {
+                addFeatures($scope, 'classArr', args.featureIndex);
+                if ($scope.character.classObj.subclassObj) {
+                    addFeatures($scope, 'subclassArr', args.featureIndex);
+                    $scope.character.classObj.classFeatures = $scope.currentClassFeatures.concat(subclassFeatures);
+                }
             }
             if (args.background || $scope.background) {
                 $scope.background = args.background || $scope.background;
                 $scope.character.background = $scope.background;
             }
             if (args.selectedCantrips) {
-                $scope.character.classObj.selectedCantrips = args.selectedCantrips.split(', ');
+                $scope.character.classObj.selectedCantrips = args.selectedCantrips; //.split(', ');
+                $scope.character.classObj.selectedClassCantrips = angular.copy($scope.character.classObj.selectedCantrips);
             }
             if (args.selectedBonusCantrip) {
                 $scope.character.raceObj.cantrip = args.selectedBonusCantrip;
@@ -509,13 +576,50 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
             $scope.character.calculateModifiers(); // update ability modifiers
 
             // needs to be at the very end to alter existing properties
-            if (!args.subclass && !args.selectedFeature) {  // assuming that features and subclasses don't affect skills
+            if (!args.level && !args.selectedFeatures && !args.selectedCantrips && !args.selectedBonusCantrip) {
+                $scope.character.resetSkills();
                 $scope.character.handleSkills();
             }
             $scope.character.handleFeatureBonuses(features);
             args.checked = false;
         }
     });
+}
+
+// TODO: possibly move to service
+function addFeatures($scope, type, featureIndex) {    // classArr or subclassArr
+    if (angular.isArray($scope.selectedChoices[type])) {
+        var selectedFeaturesArray = []; // expected outcome ex: [Distant Spell, Heighten Spell]
+        var featureChoiceName = '';
+        angular.forEach($scope.selectedChoices[type], function(selectedFeatures, idx) {
+            angular.forEach(selectedFeatures, function(selectedFeature) {
+                if (selectedFeature.benefit) {
+                    var tempFeatureChoice = '';
+                    angular.forEach(selectedFeature.benefit, function(feature) {
+                        if (feature.level <= $scope.character.level) {
+                            tempFeatureChoice = feature;
+                        }
+                    });
+                    if (idx === featureIndex) {
+                        selectedFeaturesArray.push(selectedFeature.name);
+                    }
+                    if (selectedFeature.parent_name) {
+                        featureChoiceName = selectedFeature.parent_name + ' (' + selectedFeature.name + ')';
+                    } else {
+                        featureChoiceName = selectedFeature.name;
+                    }
+                    $scope.character.classObj.classFeatures.push(new KeyValue(tempFeatureChoice.id, featureChoiceName, tempFeatureChoice.description));
+                }
+            });
+        });
+        if (!isNaN(featureIndex)) {
+            if (type === 'classArr' && $scope.character.classObj.selectedFeatures[featureIndex]) {
+                $scope.character.classObj.selectedFeatures[featureIndex].name = selectedFeaturesArray;
+            } else if (type === 'subclassArr' && $scope.character.classObj.subclassObj.selectedFeatures[featureIndex]) {
+                $scope.character.classObj.subclassObj.selectedFeatures[featureIndex].name = selectedFeaturesArray;
+            }
+        }
+    }
 }
 
 function DialogNewCharController($scope, $modalInstance) {
@@ -772,49 +876,48 @@ function DialogSubclassController($scope, $modalInstance, subclasses){
     };
 }
 // TODO: support multiple selections
-function DialogFeatureController($scope, $modalInstance, features, index, selectedFeatures, featureName) {
+function DialogFeatureController($scope, $modalInstance, features, index, type, max) {    // selectedFeatures
     $scope.title = 'Select Feature';
     $scope.values = features;
 
     $scope.description = 'Click a list item to view more information';
     $scope.featureType = '';
     $scope.features = [];
-    $scope.tempFeature = '';
-    $scope.index = index;
+    $scope.tempFeatures = [];
     $scope.disabled = true;
-    var takenFeatures = angular.copy(selectedFeatures);
-    takenFeatures.splice(selectedFeatures.getIndexBy('name', featureName), 1);
+    $scope.max = parseInt(max);
+    //var takenFeatures = angular.copy(selectedFeatures);
+    //takenFeatures.splice(selectedFeatures.getIndexBy('name', featureName), 1);
 
     $scope.showDescription = function(selectobj) {
-        $scope.selectedIndex = selectobj.$index;
+        $scope.selectedFeature = selectobj.value;
         var value;
-        $scope.tempFeature = '';
-        $scope.features = [];
         for (var i=0; i<$scope.values.length; i++) {
             value = angular.copy($scope.values[i]);
             if (value.name === selectobj.value.name) {
-                $scope.tempFeature = selectobj.value;
-                if (takenFeatures.getIndexBy('name', value.name) !== -1) {
-                    $scope.disabled = true;
-                    $scope.tempFeature.alreadyTaken = true;
-                    value.desc += '<div class="text-danger">Already Taken</div>';
-                } else {
-                    $scope.disabled = false;
+                if (!$scope.selectedFeature.active && $scope.max - $scope.tempFeatures.length > 0) {
+                    $scope.tempFeatures.push($scope.selectedFeature);
+                    $scope.selectedFeature.active = true;
+                } else if ($scope.selectedFeature.active) {
+                    $scope.tempFeatures.splice($scope.tempFeatures.getIndexBy('name', $scope.selectedFeature.name), 1); // remove cantrip
+                    $scope.selectedFeature.active = false;
                 }
-                $scope.features.push(new KeyValue(value.id, value.name, value.desc));
                 break;
             }
         }
+        $scope.disabled = $scope.max - $scope.tempFeatures.length !== 0; // disabled is true if there are still features left to choose
     };
 
     $scope.done = function() {
-        if ($scope.tempFeature && !$scope.tempFeature.alreadyTaken) {
-            $scope.$emit('handleEmit', {selectedFeature: $scope.tempFeature, checked: true, featureIndex: $scope.index});
+        var tempFeatures = '';
+        if (angular.isArray($scope.tempFeatures)) {
+            // convert tempCantrips to sorted string
+            $scope.tempFeatures.sort();
+            //tempFeatures = $scope.tempFeatures.join(', ');
+            $scope.$emit('handleEmit', {selectedFeatures: $scope.tempFeatures, featureIndex: index, type: type, checked: true});
             $modalInstance.close();
-        } else if ($scope.tempFeature.alreadyTaken) {
-            alert("This feature is already taken");
         } else {
-            alert("Please select a feature");
+            alert("Please select your features");
         }
     };
 
@@ -855,18 +958,18 @@ function DialogCantripController($scope, $modalInstance, cantrips, numCantrips) 
     };
     $scope.done = function() {
         var tempCantrips = '';
-        if ($scope.tempCantrips) {
+        if (angular.isArray($scope.tempCantrips)) {
             // convert tempCantrips to sorted string
             $scope.tempCantrips.sort();
             tempCantrips = $scope.tempCantrips.join(', ');
             if (numCantrips === 1) {    // assume if numCantrips is 1, then it is for bonus cantrip
                 $scope.$emit('handleEmit', {selectedBonusCantrip: tempCantrips, checked: true});
             } else {
-                $scope.$emit('handleEmit', {selectedCantrips: tempCantrips, checked: true});
+                $scope.$emit('handleEmit', {selectedCantrips: $scope.tempCantrips, checked: true});
             }
             $modalInstance.close();
         } else {
-            alert("Please select a feature");
+            alert("Please select your cantrips");   // should be impossible to get here since button is disabled
         }
     };
 
@@ -878,13 +981,15 @@ function DialogCantripController($scope, $modalInstance, cantrips, numCantrips) 
 function DialogSummaryController($scope, $modalInstance, character) {
     var ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
     var ABILITY_MAPPER = {'str':'Strength', 'dex':'Dexterity', 'con':'Constitution', 'int':'Intelligence', 'wis':'Wisdom', 'cha':'Charisma'};
+    var index = 0;
     function addPlusSign(val) {
         if (val >= 0) {
             val = '+' + val;
         }
         return val;
     }
-    character.hitPoints = character.classObj ? character.hitPoints + ' (' + character.level + 'd' + character.classObj.hit_dice + ')' : '';
+    var bonusHP = character.bonusHP >= 0 ? '+' + character.bonusHP : character.bonusHP;
+    character.hitPointsDesc = character.classObj ? character.hitPoints + ' (' + character.level + 'd' + character.classObj.hit_dice + bonusHP + ')' : '';
     character.initiative = addPlusSign(character.initiative);
     character.speed = character.speed ? character.speed + ' feet' : '';
     character.profBonus = addPlusSign(character.profBonus);
@@ -912,6 +1017,21 @@ function DialogSummaryController($scope, $modalInstance, character) {
         }*/
         if (character.classObj.selectedCantrips) {
             character.classObj.selectedCantrips = character.classObj.selectedCantrips.join(', ');   // convert to string
+        }
+        if (character.classObj.selectedSpells) {
+            character.classObj.selectedSpellsByLevel = [];
+            angular.forEach(character.classObj.selectedSpells, function(spell) {
+                index = parseInt(spell.level) - 1;
+                if (character.classObj.selectedSpellsByLevel[index]) {
+                    character.classObj.selectedSpellsByLevel[index].push(spell.name)
+                } else {
+                    character.classObj.selectedSpellsByLevel[index] = [spell.name];
+                }
+            });
+            angular.forEach(character.classObj.selectedSpellsByLevel, function(spells, idx, arr) {
+                spells.sort();
+                arr[idx] = spells.join(', ');
+            });
         }
     }
 

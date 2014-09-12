@@ -12,6 +12,47 @@ angular.module('charGenDirective', [])
             }
         };
     })
+    .directive('expertise', function() {
+        return {
+            restrict: 'A',
+            require: 'ngModel',
+            link: function(scope, element, attrs, ngModel) {
+                scope.$watch(attrs.ngModel, function(newVal, oldVal) {
+                    var item, isAdded;
+                    if (angular.isDefined(newVal)) {
+                        if (!oldVal) {
+                            isAdded = true;
+                            item = newVal[0];
+                        } else if (newVal.length < oldVal.length) {
+                            isAdded = false;    // remove
+                            item = oldVal.diff(newVal)[0];
+                        } else if (newVal.length > oldVal.length) {
+                            isAdded = true;
+                            item = newVal.diff(oldVal)[0];
+                        }
+                        scope.character.updateSkillScore(item, isAdded);
+
+                    }
+                });
+            }
+        }
+    })
+    .directive('languages', function() {
+        return {
+            restrict: 'A',
+            require: 'ngModel',
+            link: function(scope, element, attrs, ngModel) {
+                scope.$watch(attrs.languages, function(newValue) {
+                    if (angular.isDefined(newValue)) {//} && $scope.character.background) {
+                        scope.character.selectedLanguages = scope.character.selectedLanguages || [];
+                        scope.select2Languages = newValue; // represents the 'max' attribute for select2
+                        scope.numLanguagesLeft = scope.character.numLanguages - scope.character.selectedLanguages.length;
+                        //$scope.selectedLanguages.length = newValue; //determineNumItems('#chosenLanguages', newValue);
+                    }
+                });
+            }
+        }
+    })
     .directive('isEmpty', function() {
         return {
             require: 'ngModel',

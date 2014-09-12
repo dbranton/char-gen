@@ -210,32 +210,45 @@ angular.module('ui.select2', []).value('uiSelect2Config', {}).directive('uiSelec
                     });
                 }
 
-                if (angular.isDefined(attrs.max) && attrs.multiple) {
+                if (angular.isDefined(attrs.max)) {
 
                     //scope.$watch(attrs.max, function(newVal) {
-                    attrs.$observe('max', function(newVal) {
+                    attrs.$observe('max', function(newVal, oldVal) {
                         var val = parseInt(newVal, 10);
                         var model = scope.$eval(attrs.ngModel);
                         var options = {
                             minimumResultsForSearch: -1,
-                            maximumSelectionSize: val
+                            maximumSelectionSize: val,
+                            closeOnSelect: false
                         };
-                        if (angular.isDefined(model)) {
+                        var opts = angular.extend({}, options, scope.$eval(attrs.uiSelect2));
+                        /*if (angular.isDefined(model)) {
                             if (model.length > val) {
-                                //model = null;
+                                //model = null;*/
                                 /*var newOptions = {
                                     containerCssClass: 'ng-invalid'
                                 }
                                 $.extend(options, newOptions);*/
                                 //elm.addClass('ng-invalid');
-                            } else {
+                            /*} else {
                                 //elm.removeClass('ng-invalid');
                             }
+                        }*/
+                        if (!isNaN(val)) {
+                            elm.select2(opts);   // to prevent flicker
+                            $timeout(function () {  // needed because ui-select2 might be inside ng-repeat
+                                elm.select2(opts);
+                            });
                         }
-                        elm.select2(options);
-
                     });
                 }
+
+                // added by Daniel to account for changes in uiSelect2 object
+                scope.$watch(attrs.uiSelect2, function(opts) {
+                    if (angular.isDefined(opts)) {
+                        elm.select2(opts);
+                    }
+                }, true);
 
                 // Initialize the plugin late so that the injected DOM does not disrupt the template compiler
                 $timeout(function () {

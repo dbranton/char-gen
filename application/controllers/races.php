@@ -10,7 +10,7 @@ class Races extends CI_Controller {
         $this->load->model('race_model');
         $data['races'] = $this->race_model->getRaces();
         $data['title'] = 'Races';
-        $data['main_content'] = 'pages/races';
+        $data['main_content'] = 'pages/races_view';
         $data['type'] = '';
         $this->load->view('template', $data);
     }

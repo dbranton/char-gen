@@ -21,34 +21,45 @@
             echo '<p>' . $class_feature['desc'] . '</p>';
             //echo '<p>' . $class_feature['benefit'] . '</p>';
             if (isset($class_feature['subclasses']) && is_array($class_feature['subclasses'])) {
-                echo '<div>';
+                echo '<div class="panel-group">';
                 foreach ($class_feature['subclasses'] as $subclassName => $subclassArray) {
-                    echo '<h4>' . $subclassArray['name'] . '</h4>';
-                    echo '<div>';
+                    echo '<div class="panel panel-default">';
+                    echo '<div class="panel-heading" data-toggle="collapse" data-target="#subclass-' . $subclassArray['id'] . '">';
+                    echo '<h4 class="panel-title">' . $subclassArray['name'] . '</h4>';
+                    echo '</div>';  // end panel-heading
+                    echo '<div id="subclass-' . $subclassArray['id'] . '" class="panel-body collapse">';
                     echo '<p>' . $subclassArray['desc'] . '</p>';
-                    echo '<ul>';
+                    echo '<dl>';
                     /*if ($subclassArray['align'] !== '') {
                         echo '<li><b>Alignment</b>: ' . $subclassArray['align'] . '</li>';
                     }*/
-                    if ($subclassArray['armor_prof'] !== '') {
-                        echo '<li><b>Armor and Shield Proficiencies</b>: ' . $subclassArray['armor_prof'] . '</li>';
-                    }
                     if (is_array($subclassArray['benefit'])) {
                         foreach ($subclassArray['benefit'] as $name => $abilityInfo) {
-                            echo '<li><b>' . $abilityInfo['name'] . '</b>: ' . $abilityInfo['desc'] . '</li>';
+                            echo '<dt>' . $abilityInfo['name'] . '</dt>';
+                            echo '<dd>' . $abilityInfo['desc'];
+                            if (isset($abilityInfo['subfeatures'])) {
+                                echo '<ul>';
+                                foreach ($abilityInfo['subfeatures'] as $name => $abilityInfo) {
+                                    echo '<li><b>' . $abilityInfo['name'] . '</b>: ' . $abilityInfo['desc'] . '</li>';
+                                }
+                                echo '</ul>';
+                            }
+                            echo '</dd>';
                         }
                     }
-                    echo '</ul>';
-                    echo '</div>';
+                    echo '</dl>';
+                    echo '</div>'; // end panel-body
+                    echo '</div>';  // end panel
                 }
-                echo '</div>';  // end accordion div
+                echo '</div>';  // end panel-group
             }
             if (isset($class_feature['subfeatures']) && is_array($class_feature['subfeatures'])) {
-                echo '<ul>';
+                echo '<dl>';
                 foreach ($class_feature['subfeatures'] as $id => $subfeature) {
-                    echo '<li><i>' . $subfeature['name'] . '</i>: ' . $subfeature['desc'] . '</li>';
+                    echo '<dt>' . $subfeature['name'] . '</dt>';
+                    echo '<dd>'. $subfeature['desc'] . '</dd>';
                 }
-                echo '</ul>';
+                echo '</dl>';
             }
         }
     }

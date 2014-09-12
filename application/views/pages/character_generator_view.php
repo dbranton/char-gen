@@ -30,7 +30,7 @@
             <div class="panel-body">
                 <div class="col-md-6" id="charGenCol1">
                     <fieldset>
-                        <legend><a href="#backgroundPanel" data-toggle="collapse">Background</a></legend>
+                        <legend data-target="#backgroundPanel" data-toggle="collapse">Background</legend>
                         <div id="backgroundPanel" class="collapse in">
                             <div class="form-group">
                                 <label class="col-sm-4 control-label">Name:</label>
@@ -66,18 +66,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label class="col-sm-4 control-label">Languages:</label>
-                                <div class="col-sm-8 text">
-                                    <span ng-hide="character.languages">None</span>
-                                    {{character.languages}}
-                                    <div ng-hide="!character.background.name || character.numLanguages == 0">
-                                        <select ui-select2 ng-model="character.selectedLanguages" id="chosenLanguages" multiple max="{{select2Languages}}" style="width: 100%">
-                                            <option ng-repeat="language in availableLanguages">{{language}}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
                             <div class="form-group" ng-show="character.raceObj.cantrip || character.raceObj.cantrips">
                                 <label class="col-sm-4 control-label">Bonus Cantrip:</label>
                                 <div class="col-sm-8">
@@ -97,7 +85,7 @@
                         </div>
                     </fieldset>
                     <fieldset>
-                        <legend><a href="#classPanel" data-toggle="collapse">Class</a></legend>
+                        <legend data-target="#classPanel" data-toggle="collapse">Class</legend>
                         <div id="classPanel" class="collapse in">
                             <div class="form-group">
                                 <label class="col-sm-4 control-label">Class:</label>
@@ -114,7 +102,7 @@
                                 </div>
                             </div>
                             <div class="form-group" ng-show="character.classObj.subclasses.length > 0 || character.classObj.subclassObj">
-                                <label class="col-sm-4 control-label">Subclass:</label>
+                                <label class="col-sm-4 control-label">{{character.classObj.subclassName}}:</label>
                                 <div class="col-sm-8">
                                     <div ng-class="{'input-group':!isMobile}">
                                         <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openSubclassDialog()">
@@ -127,16 +115,32 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group" ng-repeat="selectedFeature in selectedFeatures">
-                                <label class="col-sm-4 control-label">Feature:</label>
+                            <!-- for Class-based feature choices (ex: Fighting Style, Metamagic) -->
+                            <div class="form-group" ng-repeat="selectedFeature in character.classObj.selectedFeatures">
+                                <label class="col-sm-4 control-label">{{selectedFeature.label}}:</label> <!--Feature:</label>-->
                                 <div class="col-sm-8">
                                     <div ng-class="{'input-group':!isMobile}">
-                                        <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openFeatureDialog()">
+                                        <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openFeatureDialog(selectedFeature, 'classArr')">
                                             <span class="fa fa-columns"></span>
                                         </label>
-                                        <select ui-select2 ng-model="selectedFeatures[$index].name"
-                                                id="selectFeature" style="width: 100%" ng-change="broadcastObj(character.classObj.featureChoices, selectedFeatures[$index].name, 'selectedFeature', $index)">
-                                            <option ng-repeat="feature in character.classObj.featureChoices" value="{{feature.name}}">{{feature.name}}</option>
+                                        <select ui-select2 ng-model="selectedFeature.name" multiple max="{{selectedFeature.max}}"
+                                                style="width: 100%" ng-change="broadcastArray(selectedFeature, 'selectedFeatures', 'classArr')">
+                                            <option ng-repeat="feature in selectedFeature.choices" value="{{feature.name}}">{{feature.name}}</option> <!--character.classObj.featureChoices-->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- for subclass feature choices (ex: Totem Aspect, Combat Superiority, etc.) -->
+                            <div class="form-group" ng-repeat="selectedFeature in character.classObj.subclassObj.selectedFeatures">
+                                <label class="col-sm-4 control-label">{{selectedFeature.label}}:</label> <!--Feature:</label>-->
+                                <div class="col-sm-8">
+                                    <div ng-class="{'input-group':!isMobile}">
+                                        <label ng-if="!isMobile" class="input-group-addon btn btn-default" ng-click="openFeatureDialog(selectedFeature, 'subclassArr')">
+                                            <span class="fa fa-columns"></span>
+                                        </label>
+                                        <select ui-select2 ng-model="selectedFeature.name" multiple max="{{selectedFeature.max}}"
+                                                style="width: 100%" ng-change="broadcastArray(selectedFeature, 'selectedFeatures', 'subclassArr')">
+                                            <option ng-repeat="feature in selectedFeature.choices" value="{{feature.name}}">{{feature.name}}</option> <!--character.classObj.featureChoices-->
                                         </select>
                                     </div>
                                 </div>
@@ -154,10 +158,38 @@
                                     </div>
                                 </div>
                             </div>
+                            <!-- subclass cantrips -->
+                            <div class="form-group" ng-show="character.classObj.subclassObj.cantrips">
+                                <label class="col-sm-4 control-label">Cantrips:</label>
+                                <div class="col-sm-8">
+                                    <div class="input-group">
+                                        <label class="input-group-addon btn btn-default" ng-click="openSubclassCantripDialog()">
+                                            <span class="fa fa-columns"></span>
+                                        </label>
+                                        <select ui-select2 ng-model="character.classObj.selectedCantrips" id="chosenSubclassCantrips" multiple max="{{character.classObj.numCantrips}}" style="width: 100%" ng-change="broadcastNonObj(character.classObj.selectedCantrips, 'selectedCantrips')">
+                                            <option ng-repeat="cantrip in character.classObj.subclassObj.cantrips">{{cantrip.name}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" ng-show="character.classObj.spellcasting.numSpellsKnown">
+                                <label class="col-sm-4 control-label">Spells:</label>
+                                <div class="col-sm-8">
+                                    <div> <!--class="input-group"-->
+                                        <!--<label class="input-group-addon btn btn-default" ng-click="openSubclassCantripDialog()">
+                                            <span class="fa fa-columns"></span>
+                                        </label>-->
+                                        <!--<select ui-select2 ng-model="character.classObj.selectedSpells" id="chosenSubclassCantrips" multiple max="{{character.classObj.numCantrips}}" style="width: 100%" ng-change="broadcastNonObj(character.classObj.selectedCantrips, 'selectedCantrips')">
+                                            <option ng-repeat="cantrip in character.classObj.subclassObj.cantrips">{{cantrip.name}}</option>
+                                        </select>-->
+                                        <input type="hidden" ui-select2="select2Spells" ng-model="character.classObj.selectedSpells" max="{{character.classObj.spellcasting.numSpellsKnown}}" style="width:100%" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </fieldset>
                     <fieldset>
-                        <legend><a href="#abilityPanel" data-toggle="collapse">Abilities</a></legend>
+                        <legend data-target="#abilityPanel" data-toggle="collapse">Abilities</legend>
                         <div id="abilityPanel" class="collapse in">
                             <table class="table table-bordered table-striped table-condensed">
                                 <thead>
@@ -245,23 +277,23 @@
 
                 <div class="col-md-6" id="charGenCol2">
                     <fieldset><!--{{character.proficientSkills}}-->
-                        <legend><a href="#skillsPanel" data-toggle="collapse">Skills</a></legend>
+                        <legend data-target="#skillsPanel" data-toggle="collapse">Skills</legend>
                         <div class="collapse in" id="skillsPanel">
                             <label>Passive Wisdom (Perception):</label> {{character.passivePerception}}
                             <div ng-show="character.numSkillsLeft >= 0">{{character.numSkillsLeft}} Skills Left</div>
                             <skills></skills>
-                        </div>
-                        <div class="form-group" ng-hide="!character.classObj.expertiseList">
-                            <label class="col-sm-4 control-label">Expertise:</label>
-                            <div class="col-sm-8 text">
-                                <select ui-select2 ng-model="character.classObj.selectedExpertise" id="chosenExpertise" multiple max="{{character.classObj.numExpertise}}" style="width: 100%" ng-change="changeExpertise()">
-                                    <option ng-repeat="expertise in character.classObj.expertiseList">{{expertise}}</option>
-                                </select>
+                            <div class="form-group" ng-show="character.classObj.expertise">
+                                <label class="col-sm-4 control-label">{{character.classObj.expertise.label}}:</label>
+                                <div class="col-sm-8 text">
+                                    <select ui-select2 expertise ng-model="character.classObj.expertise.selectedExpertise" id="chosenExpertise" multiple max="{{character.classObj.expertise.numExpertise}}" style="width: 100%" ng-change="changeExpertise()">
+                                        <option ng-repeat="expertise in character.classObj.expertise.list">{{expertise}}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </fieldset>
                     <fieldset>
-                        <legend><a href="#profPanel" data-toggle="collapse">Proficiencies (+{{character.profBonus}})</a></legend>
+                        <legend data-target="#profPanel" data-toggle="collapse">Proficiencies (+{{character.profBonus}})</legend>
                         <div class="control-group-container collapse in" id="profPanel">
                             <div class="form-group">
                                 <div class="col-sm-4 control-label">
@@ -285,6 +317,18 @@
                                 <label class="col-sm-4 control-label">Tools:</label>
                                 <div class="col-sm-8 text"><span ng-hide="character.tools">None</span>{{character.tools}}</div>
                             </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">Languages:</label>
+                                <div class="col-sm-8 text">
+                                    <span ng-hide="character.languages">None</span>
+                                    {{character.languages}}
+                                    <div ng-hide="!character.background.name || character.numLanguages == 0">
+                                        <select ui-select2 languages="character.numLanguages" ng-model="character.selectedLanguages" id="chosenLanguages" multiple max="{{select2Languages}}" style="width: 100%">
+                                            <option ng-repeat="language in availableLanguages">{{language}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </fieldset>
                 </div> <!-- col-md-6 -->
@@ -295,7 +339,7 @@
                     <input type="hidden" id="inputRace" name="raceName" ng-model="character.raceObj.subrace.name" required />
                     <input type="hidden" id="inputClass" name="className" ng-model="character.classObj.name" required />
                     <input type="hidden" id="inputSubclass" name="subclassName" ng-model="character.classObj.subclassObj.name" ng-required="subclasses.length > 0" />
-                    <input type="hidden" id="inputFeature" name="featureName" ng-model="selectedFeature.name" ng-required="featureChoices.length > 0" />
+                    <!--<input type="hidden" id="inputFeature" name="featureName" ng-model="selectedFeature.name" ng-required="featureChoices.length > 0" />-->
                     <input type="hidden" id="inputBackground" name="backgroundName" ng-model="character.background.name" required />
                     <input type="hidden" id="inputLanguage" name="languageName" ng-model="numLanguagesLeft" is-empty />
                     <input type="hidden" id="inputSkills" name="skillsName" ng-model="character.numSkillsLeft" is-empty />
@@ -311,7 +355,7 @@
                         <div><small class="text-danger" ng-show="charGenForm.languageName.$error.notEmpty">You need to choose your languages</small></div>
                         <div><small class="text-danger" ng-show="charGenForm.className.$error.required">Please choose a class</small></div>
                         <div><small class="text-danger" ng-show="charGenForm.subclassName.$error.required">Please choose a subclass</small></div>
-                        <div><small class="text-danger" ng-show="charGenForm.featureName.$error.required">You need to choose a feature for your class</small></div>
+                        <!--<div><small class="text-danger" ng-show="charGenForm.featureName.$error.required">You need to choose a feature for your class</small></div>-->
                         <div><small class="text-danger" ng-show="charGenForm.skillsName.$error.notEmpty">Please select your skills</small></div>
                         <div><small class="text-danger" ng-show="charGenForm.abPtsLeftName.$error.notEmpty">Please assign your ability scores</small></div>
                     </div>

@@ -61,7 +61,7 @@ class Race_model extends CI_Model {
                 $trait['benefit_desc'] = $row->benefit_desc;
                 $trait['benefit_stat'] = $row->benefit;
                 $trait['benefit_value'] = $row->benefit_value;
-                if ($trait['benefit_stat'] == 'bonus_cantrip') {
+                if ($trait['benefit_stat'] == 'bonus_race_cantrip') {
                     $trait['cantrip'] = $trait['benefit_value']; // ex: 'Thaumaturgy, cha'
                 }
                 $trait['per_level'] = $row->per_level;
@@ -110,7 +110,7 @@ class Race_model extends CI_Model {
                 $trait['benefit_stat'] = $row->benefit;
                 $trait['benefit_value'] = $row->benefit_value;
                 $trait['per_level'] = $row->per_level;
-                if ($trait['benefit_stat'] == 'bonus_cantrip_choice') {
+                if ($trait['benefit_stat'] == 'bonus_race_cantrip_choice') {
                     $benefitArr = explode(', ', $trait['benefit_value']);  // convert string to array
                     $classId = $benefitArr[0]; // ex: 4
                     $trait['cantrips'] = $this->_getCantrips($classId);

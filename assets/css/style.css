@@ -207,6 +207,10 @@ legend.small-legend {
     font-size: 16px;
 }
 
+legend {
+    cursor: pointer;
+}
+
 input.ability {
     width: 30px;
     text-align: center;
@@ -214,6 +218,10 @@ input.ability {
 
 .alert {
     padding: 10px; /* overwrite 15px */
+}
+
+.select2-results li.select2-no-results {
+    display: none;
 }
 
 /* End Table Sorter Styles */
