@@ -3,11 +3,11 @@
 class Race_model extends CI_Model {
 
     public function getRaces($selRace = NULL) {    // if parameter is null, then get all races
-        if (is_null($selRace)) {
-            $sql = "SELECT * FROM race_table WHERE subrace = ''";
-        } else {
-            $sql = "SELECT * FROM race_table WHERE subrace = '' AND name = '" . $selRace . "'";
+        $sql = "SELECT * FROM race_table WHERE subrace = '' AND active = 1";
+        if (!is_null($selRace)) {
+            $sql .= " AND name = '" . $selRace . "'";
         }
+        $sql .= " ORDER BY name";
         $query = $this->db->query($sql);
         if ($query->num_rows() > 0) {
             $character = array();
@@ -41,7 +41,7 @@ class Race_model extends CI_Model {
     }
 
     public function getTraits($raceId) {
-        $sql = "SELECT DISTINCT features_table.*, race_features.benefit AS benefit_desc, race_features.id AS race_feature_id" .
+        $sql = "SELECT DISTINCT features_table.*, race_features.level, race_features.benefit AS benefit_desc, race_features.id AS race_feature_id" .
             " FROM features_table" .
             " JOIN race_features" .
             " ON race_features.feature_id = features_table.id" .
@@ -57,6 +57,7 @@ class Race_model extends CI_Model {
                 //$trait[$row->name] = $row->description;
                 $trait['id'] = $row->race_feature_id;
                 $trait['name'] = $row->name;
+                $trait['level'] = $row->level;
                 $trait['description'] = $row->description;
                 $trait['benefit_desc'] = $row->benefit_desc;
                 $trait['benefit_stat'] = $row->benefit;

@@ -29,7 +29,8 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
     $scope.searchText = '';
     $scope.subclasses = [];
     $scope.storedCharacter = null;
-    $scope.select2Spells = charGenFactory.returnSelect2SpellsConfig();
+    //$scope.selectedSpells = [];
+    //$scope.bonusSelectedSpells = [];
     var opts = {
         backdrop: true,
         keyboard: true,
@@ -249,7 +250,7 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                     outerIndex++;
                 }
             }
-            $scope.raceData = subraces;
+            $scope.raceData = races;    //subraces;
         });
         charGenFactory.getBackgrounds().success(function(data) {
             $scope.backgroundData = data;
@@ -343,9 +344,15 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                 //$scope.character.racialTraits = args.racialTraits;
                 $scope.character.raceObj.racialTraits = []; // reset
                 if ($scope.race.traits) {
-                    $scope.race.traits.forEach(function(trait) {
-                        if (trait.benefit_desc) {
-                            $scope.character.raceObj.racialTraits.push(new KeyValue(trait.id, trait.name, trait.benefit_desc));
+                    var tempName;
+                    angular.forEach($scope.race.traits, function(trait) {
+                        if (trait.benefit_desc && trait.level <= $scope.character.level) {
+                            if (!tempName || tempName !== trait.name) {
+                                $scope.character.raceObj.racialTraits.push(new KeyValue(trait.id, trait.name, trait.benefit_desc));
+                                tempName = trait.name;
+                            } else {
+                                $scope.character.raceObj.racialTraits[$scope.character.raceObj.racialTraits.getIndexBy('name', tempName)] = new KeyValue(trait.id, trait.name, trait.benefit_desc);
+                            }
                         }
                         if (trait.benefit_stat) {
                             features[trait.benefit_stat] = trait.benefit_value;
@@ -369,14 +376,17 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                         if (trait.cantrips && !args.selectedBonusCantrip) {    // trait.cantrips is the cantrip list
                             $scope.character.raceObj.cantrips = angular.copy(trait.cantrips);   // populate cantrips list
                         }
-                        if ($scope.character.classObj && $scope.character.classObj.selectedCantrips && $scope.character.raceObj.cantrips) {
-                            for (var i=0, ilen=$scope.character.classObj.selectedCantrips.length; i<ilen; i++) {
-                                if ($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]) !== -1) {
-                                    $scope.character.raceObj.cantrips.splice($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]), 1);  // filter out selected cantrips (if any) from bonus cantrips list
-                                }
-                            }
-                        }
                     });
+                }
+
+                // account for spellcaster's cantrips coinciding with High Elf's bonus cantrip
+                if (args.selectedCantrips && $scope.character.classObj.selectedCantrips &&
+                        $scope.character.raceObj.cantrips) {
+                    for (var i=0, ilen=$scope.character.classObj.selectedCantrips.length; i<ilen; i++) {
+                        if ($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]) !== -1) {
+                            $scope.character.raceObj.cantrips.splice($scope.character.raceObj.cantrips.getIndexBy('name', $scope.character.classObj.selectedCantrips[i]), 1);  // filter out selected cantrips (if any) from bonus cantrips list
+                        }
+                    }
                 }
 
                 $scope.character.determineRace();   // now takes care of languages
@@ -392,6 +402,9 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                     $scope.character.classObj.selectedFeatures = [];    // reset
                     $scope.selectedChoices = {classArr: [], subclassArr: []}; //[];
                     $scope.character.determineClass();
+                }
+                if (args.subclass) {
+                    $scope.character.classObj.expertise = null; // clear expertise if subclass changed (Knowledge Domain)
                 }
                 //$scope.character.className = args.clazz.name;
                 if (angular.isArray($scope.clazz.features)) {
@@ -418,7 +431,7 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                                 if (tempBenefit.benefit_stat) {
                                     features[tempBenefit.benefit_stat] = tempBenefit.benefit_value;
                                     // give dynamic name for expertise label
-                                    if (args.clazz && tempBenefit.benefit_stat === 'expertise') {
+                                    if ((args.clazz || args.subclass) && tempBenefit.benefit_stat === 'expertise') {
                                         $scope.character.classObj.expertise = {};
                                         $scope.character.classObj.expertise.label = featureObj.name;
                                     }
@@ -439,12 +452,6 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                                     featureObj.subfeatures.forEach(function(subfeature) {
                                         if (subfeature.cantrips && !args.selectedCantrips) {    // make sure to not execute when selecting cantrips
                                             $scope.character.classObj.cantrips = angular.copy(subfeature.cantrips);   // populate cantrips list
-                                        }
-                                        // for cantrips coinciding with high elf's bonus cantrip
-                                        if ($scope.character.raceObj && $scope.character.raceObj.cantrip &&
-                                                $scope.character.classObj.cantrips &&
-                                                $scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1) {
-                                            $scope.character.classObj.cantrips.splice($scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);  // remove bonus cantrip (if any) from cantrips list
                                         }
                                         if (angular.isArray(subfeature.benefit)) {
                                             angular.forEach(subfeature.benefit, function(benefitObj, idx) {
@@ -468,13 +475,21 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                     });
                     $scope.currentClassFeatures = $scope.character.classObj.classFeatures;
                 }
+                // keeps high elf's bonus cantrip from coinciding with spellcaster's cantrips
+                if ($scope.character.raceObj.cantrip &&
+                    ($scope.character.classObj.cantrips && $scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1)) {
+                    $scope.character.classObj.cantrips.splice($scope.character.classObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);  // remove bonus cantrip (if any) from cantrips list
+                } else if ($scope.character.classObj.subclassObj && $scope.character.classObj.subclassObj.cantrips &&
+                        $scope.character.classObj.subclassObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1) {
+                    $scope.character.classObj.subclassObj.cantrips.splice($scope.character.classObj.subclassObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);  // remove bonus cantrip (if any) from subclass cantrips list
+                }
             }
-            if (args.subclass || ($scope.character.classObj && $scope.character.classObj.subclassObj)) {
+            if (args.subclass || $scope.character.classObj.subclassObj) {
                 if (args.subclass) {
                     $scope.character.classObj.subclassObj = args.subclass;
                     $scope.character.classObj.subclassObj.selectedFeatures = [];    // reset
                     $scope.selectedChoices.subclassArr = [];    // reset
-                    $scope.character.classObj.expertise = null;
+                    $scope.character.classObj.spellcasting = null;  //test this; possible flicker effect
                     //$scope.character.resetSkills();
                 }
                 var subclassFeatures = [];
@@ -506,36 +521,34 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                                     features[tempSubclassBenefit.benefit_stat] = tempSubclassBenefit.benefit_value;
                                 }*/
                             }
-                            if (args.subclass) {
-                                if (tempSubclassBenefit.benefit_stat === 'feature_choice') {
-                                    //$scope.character.classObj.featureChoices = feature.subfeatures;
-                                    $scope.character.classObj.subclassObj.selectedFeatures[subclassFeatureChoiceIdx] = {'name': [], 'max': tempSubclassBenefit.benefit_value, 'label': feature.name, 'choices': getFeatureChoices(feature.subfeatures, $scope.character.level, 'subclassArr', subclassFeatureChoiceIdx), 'index': subclassFeatureChoiceIdx};    // ng-repeat depends on this array
-                                    subclassFeatureChoiceIdx++;
-                                }
-                                // handle subfeatures
-                                else if (angular.isArray(feature.subfeatures)) {
-                                    angular.forEach(feature.subfeatures, function(subfeature) {
-                                        if (subfeature.cantrips && !args.selectedCantrips) {    // make sure to not execute when selecting cantrips
-                                            $scope.character.classObj.subclassObj.cantrips = angular.copy(subfeature.cantrips);   // populate cantrips list
-                                        }
-                                        if (angular.isArray(subfeature.benefit)) {
-                                            angular.forEach(subfeature.benefit, function(benefit) {
-                                                if (benefit.level <= $scope.character.level) {
-                                                    tempSubclassBenefit = benefit;
-                                                }
-                                            });
-                                            features[tempSubclassBenefit.benefit_stat] = tempSubclassBenefit.benefit_value;
-                                            if (tempSubclassBenefit.description !== '') {
-                                                subclassFeatures.push(new KeyValue(tempSubclassBenefit.id, subfeature.name, tempSubclassBenefit.description));
+                            if (args.subclass && tempSubclassBenefit.benefit_stat === 'feature_choice') {
+                                //$scope.character.classObj.featureChoices = feature.subfeatures;
+                                $scope.character.classObj.subclassObj.selectedFeatures[subclassFeatureChoiceIdx] = {'name': [], 'max': tempSubclassBenefit.benefit_value, 'label': feature.name, 'choices': getFeatureChoices(feature.subfeatures, $scope.character.level, 'subclassArr', subclassFeatureChoiceIdx), 'index': subclassFeatureChoiceIdx};    // ng-repeat depends on this array
+                                subclassFeatureChoiceIdx++;
+                            }
+                            // handle subfeatures
+                            else if (angular.isArray(feature.subfeatures)) {
+                                angular.forEach(feature.subfeatures, function(subfeature) {
+                                    if (subfeature.cantrips && !args.selectedCantrips) {    // make sure to not execute when selecting cantrips
+                                        $scope.character.classObj.subclassObj.cantrips = angular.copy(subfeature.cantrips);   // populate cantrips list
+                                    }
+                                    if (angular.isArray(subfeature.benefit)) {
+                                        angular.forEach(subfeature.benefit, function(benefit) {
+                                            if (benefit.level <= $scope.character.level) {
+                                                tempSubclassBenefit = benefit;
                                             }
+                                        });
+                                        features[tempSubclassBenefit.benefit_stat] = tempSubclassBenefit.benefit_value;
+                                        if (tempSubclassBenefit.description !== '') {
+                                            subclassFeatures.push(new KeyValue(tempSubclassBenefit.id, subfeature.name, tempSubclassBenefit.description));
                                         }
-                                        // filter out coinciding cantrips between high elf's bonus cantrip and cantrip list
-                                        if ($scope.character.raceObj && $scope.character.raceObj.cantrip &&
-                                                $scope.character.classObj.subclassObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1) {
-                                            $scope.character.classObj.subclassObj.cantrips.splice($scope.character.classObj.subclassObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);
-                                        }
-                                    });
-                                }
+                                    }
+                                    // filter out coinciding cantrips between high elf's bonus cantrip and cantrip list
+                                    if ($scope.character.raceObj.cantrip &&
+                                            $scope.character.classObj.subclassObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip) !== -1) {
+                                        $scope.character.classObj.subclassObj.cantrips.splice($scope.character.classObj.subclassObj.cantrips.getIndexBy('name', $scope.character.raceObj.cantrip), 1);
+                                    }
+                                });
                             }
                         }
                     });
@@ -552,7 +565,7 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                 }
                 $scope.selectedChoices[args.type][args.featureIndex] = args.selectedFeatures;
             }
-            if ($scope.character.classObj) {
+            if ($scope.character.classObj.classFeatures) {
                 addFeatures($scope, 'classArr', args.featureIndex);
                 if ($scope.character.classObj.subclassObj) {
                     addFeatures($scope, 'subclassArr', args.featureIndex);
@@ -989,7 +1002,7 @@ function DialogSummaryController($scope, $modalInstance, character) {
         return val;
     }
     var bonusHP = character.bonusHP >= 0 ? '+' + character.bonusHP : character.bonusHP;
-    character.hitPointsDesc = character.classObj ? character.hitPoints + ' (' + character.level + 'd' + character.classObj.hit_dice + bonusHP + ')' : '';
+    character.hitPointsDesc = character.classObj.hit_dice ? character.hitPoints + ' (' + character.level + 'd' + character.classObj.hit_dice + bonusHP + ')' : '';
     character.initiative = addPlusSign(character.initiative);
     character.speed = character.speed ? character.speed + ' feet' : '';
     character.profBonus = addPlusSign(character.profBonus);
@@ -1001,17 +1014,17 @@ function DialogSummaryController($scope, $modalInstance, character) {
     character.skills.forEach(function(skill) {
         character.skillsArr.push(skill.name + ' ' + (addPlusSign(skill.val)));
     });
-    if (character.raceObj && character.raceObj.spellcasting) {
+    if (character.raceObj.spellcasting) {
         character.raceObj.spellcasting.spellAbility = ABILITY_MAPPER[character.raceObj.spellcasting.spellAbility];
         character.raceObj.spellcasting.spellAttkBonus = '+' + character.raceObj.spellcasting.spellAttkBonus;
     }
-    if (character.classObj && character.classObj.spellcasting) {
+    if (character.classObj.spellcasting) {
         character.classObj.spellcasting.spellAbility = ABILITY_MAPPER[character.classObj.spellcasting.spellAbility];
         character.classObj.spellcasting.spellAttkBonus = '+' + character.classObj.spellcasting.spellAttkBonus;
         /*if (!character.classObj.selectedCantrips) {
              character.classObj.selectedCantrips = [];
         }
-        if (character.raceObj && character.raceObj.cantrip) {
+        if (character.raceObj.cantrip) {
             character.classObj.selectedCantrips.push(character.raceObj.cantrip);
             character.classObj.selectedCantrips.sort();
         }*/

@@ -170,7 +170,7 @@
                             </tr>
                             <tr ng-if="character.raceObj.cantrip">
                                 <th>Cantrips: </th>
-                                <td>{{character.raceObj.cantrip}}</td>
+                                <td><i>{{character.raceObj.cantrip}}</i></td>
                             </tr>
                         </table>
                     </div>
@@ -201,7 +201,7 @@
                     <h4>Background Feature</h4>
                     <dl>
                         <dt>{{character.background.trait_name}}</dt>
-                        <dd>{{character.background.desc}}</dd>
+                        <dd>{{character.background.trait_desc}}</dd>
                     </dl>
                 </div>
             </div>

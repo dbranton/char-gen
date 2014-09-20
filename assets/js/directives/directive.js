@@ -53,6 +53,89 @@ angular.module('charGenDirective', [])
             }
         }
     })
+    .directive('select2Spellcasting', function() {
+        return {
+            restrict: 'A',
+            link: function(scope, element, attrs, ngModel) {
+                function formatSelection(item) {
+                    return item.name;
+                }
+                scope[attrs.uiSelect2] = {
+                    ajax: {
+                        url: window.location.pathname + '/json_get_spells',
+                        dataType: 'json',
+                        data: function (term, page) {},
+                        quietMillis: 300,   // default is 100
+                        results: function (data, page) {
+                            // parse the results into the format expected by Select2
+                            var arr = [], spellArr = [], selectedSpells = '', level;
+                            angular.forEach(data, function(subarray, idx) {
+                                level = idx + 1;
+                                spellArr = subarray;
+                                if (scope.character.classObj.selectedSpells) {    //attrs.parent) {
+                                    spellArr = [];
+                                    selectedSpells = scope.character.classObj.selectedSpells;   //scope.$eval(attrs.parent);
+                                    angular.forEach(subarray, function(spell) {
+                                        if (selectedSpells.getIndexBy('name', spell.name) === -1) {
+                                            spellArr.push(spell);
+                                        }
+                                    });
+                                }
+                                arr.push({name: 'Level ' + level, children: spellArr});
+                            });
+                            return {
+                                results: arr    //data
+                            };
+                        }
+                    },
+                    multiple: true,
+                    formatResult: formatSelection,
+                    formatSelection: formatSelection,
+                    initSelection: function(element, callback) {
+                        var data = [], ids = $(element).val();
+                        angular.forEach(scope.character.classObj.selectedSpells, function(spell) {
+                            if (ids.indexOf(spell.id) !== -1) {
+                                data.push(spell);
+                            }
+                        });
+                        callback(data);
+                    }
+                };
+                scope.$watch(attrs.select2Spellcasting, function(newVal, oldVal) {
+                    if (newVal) {   // can be null
+                        var spellcastingObj = newVal;
+                        scope[attrs.uiSelect2].ajax.data =  function (term, page) {
+                            var paramObj = {
+                                class_id: spellcastingObj.class_id,
+                                max_spell_level: spellcastingObj.max_spell_level,
+                                term: term
+                            };
+                            if (spellcastingObj.restricted_schools) {
+                                paramObj.restricted_school_1 = spellcastingObj.restricted_schools[0];
+                                paramObj.restricted_school_2 = spellcastingObj.restricted_schools[1];
+                            }
+                            return paramObj;
+                        };
+                    }
+                });
+                scope.$watch(attrs.ngModel, function(newVal, oldVal) {
+                    if (angular.isArray(newVal)) {
+                        var primarySpells = null, bonusSpells = null;
+                        if (attrs.bonus) {
+                            bonusSpells = scope.$eval(attrs.bonus) || [];
+                            scope.character.classObj.selectedSpells = bonusSpells.concat(newVal);
+                        } else if (attrs.primary) {
+                            primarySpells = scope.$eval(attrs.primary) || [];
+                            scope.character.classObj.selectedSpells = primarySpells.concat(newVal);
+
+                        } else {
+                            throw new Error('this element has no child or parent');
+                        }
+                    }
+                });
+            }
+        }
+    })
     .directive('isEmpty', function() {
         return {
             require: 'ngModel',

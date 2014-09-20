@@ -55,8 +55,10 @@ class Character_generator extends CI_Controller {
         $this->load->model('spell_model');
         $classId = $this->input->get('class_id', TRUE);
         $maxSpellLevel = $this->input->get('max_spell_level', TRUE);
+        $restrictedSchool1 = $this->input->get('restricted_school_1', TRUE);
+        $restrictedSchool2 = $this->input->get('restricted_school_2', TRUE);
         $term = $this->input->get('term', TRUE);
-        $data = $this->spell_model->getSpells($classId, $maxSpellLevel, $term);
+        $data = $this->spell_model->getSpells($classId, $maxSpellLevel, $term, $restrictedSchool1, $restrictedSchool2);
         print json_encode($data);
     }
 

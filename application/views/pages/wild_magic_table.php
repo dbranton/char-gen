@@ -1,5 +1,5 @@
 <table class="table">
-    <caption>Wild Magic Surge</caption>
+    <!--<caption>Wild Magic Surge</caption>-->
     <thead>
         <tr>
             <th>d100&nbsp;&nbsp;&nbsp;</th>

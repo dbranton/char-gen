@@ -182,7 +182,22 @@
                                         <!--<select ui-select2 ng-model="character.classObj.selectedSpells" id="chosenSubclassCantrips" multiple max="{{character.classObj.numCantrips}}" style="width: 100%" ng-change="broadcastNonObj(character.classObj.selectedCantrips, 'selectedCantrips')">
                                             <option ng-repeat="cantrip in character.classObj.subclassObj.cantrips">{{cantrip.name}}</option>
                                         </select>-->
-                                        <input type="hidden" ui-select2="select2Spells" ng-model="character.classObj.selectedSpells" max="{{character.classObj.spellcasting.numSpellsKnown}}" style="width:100%" />
+                                        <input type="hidden"
+                                               select2-spellcasting="character.classObj.spellcasting"
+                                               bonus="character.classObj.spellcasting.bonusSelectedSpells"
+                                               ui-select2="select2Spells" ng-model="character.classObj.spellcasting.selectedSpells"
+                                               max="{{character.classObj.spellcasting.numSpellsKnown}}" style="width:100%" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" ng-show="character.classObj.spellcasting.bonus.numSpellsKnown"> <!-- ng-if causes problems! -->
+                                <label class="col-sm-4 control-label">Bonus Spells:</label>
+                                <div class="col-sm-8">
+                                    <div>
+                                        <input type="hidden" select2-spellcasting="character.classObj.spellcasting.bonus"
+                                               primary="character.classObj.spellcasting.selectedSpells"
+                                               ui-select2="bonusSelect2Spells" ng-model="character.classObj.spellcasting.bonusSelectedSpells"
+                                               max="{{character.classObj.spellcasting.bonus.numSpellsKnown}}" style="width:100%" />
                                     </div>
                                 </div>
                             </div>

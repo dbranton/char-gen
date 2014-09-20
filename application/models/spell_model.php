@@ -3,9 +3,15 @@
 class Spell_model extends CI_Model {
     public $classId = NULL;
     public $term = '';
-    public function getSpells($classId = NULL, $maxSpellLevel = 10, $term = '') {
+    public $restrictedSchool = "'Abjuration','Conjuration','Divination','Enchantment','Evocation','Illusion','Necromancy','Transmutation'";
+    public function getSpells($classId = NULL, $maxSpellLevel = 10, $term = '', $restrictedSchool1 = FALSE, $restrictedSchool2 = FALSE) {
         $this->classId = $classId;
         $this->term = $term;
+        if ($restrictedSchool1 != FALSE && $restrictedSchool2 != FALSE) {
+            $this->restrictedSchool = "'" . $restrictedSchool1 . "','" . $restrictedSchool2 . "'";
+        }
+        $this->restrictedSchool1 = $restrictedSchool1;
+        $this->restrictedSchool2 = $restrictedSchool2;
         $spells = array();
         for ($i=0; $i<=intval($maxSpellLevel); $i++) {
             if (intval($maxSpellLevel) < 10 && $i == 0) {
@@ -38,7 +44,8 @@ class Spell_model extends CI_Model {
                 " FROM spells_table" .
                 " JOIN class_spells" .
                 " ON class_spells.spell_id = spells_table.id" .
-                " WHERE level = '" . $level . "' AND class_id = '" . $this->classId . "' AND name LIKE '%" . $this->term . "%' ORDER BY name ASC";
+                " WHERE type IN (" . $this->restrictedSchool . ") AND level = '" . $level . "' AND class_id = '" . $this->classId . "'" .
+                " AND name LIKE '%" . $this->term . "%' ORDER BY name ASC";
         }
         $query = $this->db->query($sql);
         $spells = array();
