@@ -250,7 +250,7 @@ function CharGen($scope, $modal, $location, $anchorScroll, charGenFactory) {
                     outerIndex++;
                 }
             }
-            $scope.raceData = races;    //subraces;
+            $scope.raceData = subraces;
         });
         charGenFactory.getBackgrounds().success(function(data) {
             $scope.backgroundData = data;
