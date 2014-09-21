@@ -356,7 +356,7 @@ class User_model extends CI_Model {
             $character['traits'] = $this->_getRacialTraits($row->racial_trait_ids);
             $character['features'] = $this->_getClassFeatures($row->class_feature_ids, $row->cantrips, $row->expertise);
             $character['background'] = $this->_getBackground($row->background);
-            $character['spells'] = $this->_getSpells($row->spells);
+            $character['spells'] = !empty($row->spells) ? $this->_getSpells($row->spells) : NULL;
             $character['spellcasting'] = !empty($row->spell_ability) ? $ability_mapper[$row->spell_ability] : NULL;
             $character['spell_save_dc'] = !empty($row->spell_save_dc) ? $row->spell_save_dc : NULL;
             $character['spell_attk_bonus'] = $row->spell_attk_bonus >= 0 ? '+' . $row->spell_attk_bonus : $row->spell_attk_bonus;
