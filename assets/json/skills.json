@@ -1,0 +1,128 @@
+[
+    {
+        "name": "Acrobatics",
+        "ability": "Dex",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Animal Handling",
+        "ability": "Wis",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Arcana",
+        "ability": "Int",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Athletics",
+        "ability": "Str",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Deception",
+        "ability": "Cha",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "History",
+        "ability": "Int",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Insight",
+        "ability": "Wis",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Intimidation",
+        "ability": "Cha",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Investigation",
+        "ability": "Int",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Medicine",
+        "ability": "Wis",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Nature",
+        "ability": "Int",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Perception",
+        "ability": "Wis",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Performance",
+        "ability": "Cha",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Persuasion",
+        "ability": "Cha",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Religion",
+        "ability": "Int",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Sleight of Hand",
+        "ability": "Dex",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Stealth",
+        "ability": "Dex",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    },
+    {
+        "name": "Survival",
+        "ability": "Wis",
+        "val": 0,
+        "proficient": false,
+        "disabled": true
+    }
+]

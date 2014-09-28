@@ -18,9 +18,9 @@ class Spell_model extends CI_Model {
                 $i++;   // skip cantrips
             }
             $spellsByLevel = $this->_getSpellsByLevel($i);
-            if (count($spellsByLevel) > 0 || $term !== '') {
+            if (count($spellsByLevel) > 0 || $term !== '' || $i == 0) {
                 array_push($spells, $spellsByLevel);
-            } else {
+            } else if ($i != 0) {    // move on even if class has no cantrips (Ranger)
                 break;
             }
         }

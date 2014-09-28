@@ -37,12 +37,19 @@ angular.module('charGenDirective', [])
             }
         }
     })
-    .directive('languages', function() {
+    .directive('languages', function(charGenFactory) {
         return {
             restrict: 'A',
             require: 'ngModel',
             link: function(scope, element, attrs, ngModel) {
-                scope.$watch(attrs.languages, function(newValue) {
+                var LANGUAGE_LIST = [];
+                charGenFactory.getLanguages().success(function(data) {
+                    for (var i=0, ilen=data.length; i<ilen; i++) {
+                        LANGUAGE_LIST.push(data[i].name);
+                    }
+                    scope.availableLanguages = angular.copy(LANGUAGE_LIST);
+                });
+                scope.$watch(attrs.languages, function(newValue) {  // watches numLanguages
                     if (angular.isDefined(newValue)) {//} && $scope.character.background) {
                         scope.character.selectedLanguages = scope.character.selectedLanguages || [];
                         scope.select2Languages = newValue; // represents the 'max' attribute for select2
@@ -50,6 +57,47 @@ angular.module('charGenDirective', [])
                         //$scope.selectedLanguages.length = newValue; //determineNumItems('#chosenLanguages', newValue);
                     }
                 });
+                // move to language directive
+                scope.$watch('character.selectedLanguages', function(newValue, oldValue) {   // triggered whenever a language is selected
+                    if ((angular.isArray(newValue) && angular.isArray(oldValue) && newValue.length !== oldValue.length) && scope.character.raceObj.name) {   // requires race
+                        scope.character.selectedLanguages = scope.character.selectedLanguages || oldValue;
+                        var selectedLanguages = newValue || oldValue;
+                        var languages = scope.character.defaultLanguages ? scope.character.defaultLanguages.split(', ') : [];
+                        languages = languages.concat(selectedLanguages);
+                        languages = scope.character.classObj.bonusLanguages ? languages.concat(scope.character.classObj.bonusLanguages) : languages;
+                        languages.sort();
+                        scope.character.languages = languages.join(', ');
+                        scope.numLanguagesLeft = scope.character.numLanguages - selectedLanguages.length;
+                    }
+                });
+                // move to language directive
+                scope.$watch('character.raceObj.subrace.name', function(newValue) {
+                    if (newValue) {
+                        var languageList = [];
+                        for (var i=0, ilen=LANGUAGE_LIST.length; i<ilen; i++) {
+                            var language = LANGUAGE_LIST[i];
+                            if (scope.character.raceObj.languages.indexOf(language) === -1) {
+                                languageList.push(language);    // only show languages that aren't already taken
+                            }
+                        }
+                        scope.availableLanguages = languageList;
+                    }
+                });
+
+                //bonus language support
+                scope.$watch(attrs.bonusLanguages, function(newValue, oldValue) {
+                    if (angular.isArray(newValue)) {
+                        var languageList = [];
+                        var oldLanguageList = angular.copy(scope.availableLanguages);
+                        angular.forEach(oldLanguageList, function(language) {
+                            if (!scope.character.classObj.bonusLanguages || scope.character.classObj.bonusLanguages.indexOf(language) === -1) {
+                                languageList.push(language);    // only show languages that aren't already taken
+                            }
+                        });
+                        scope.availableLanguages = languageList;
+                    }
+                });
+
             }
         }
     })

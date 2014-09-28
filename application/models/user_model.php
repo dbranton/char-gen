@@ -49,26 +49,31 @@ class User_model extends CI_Model {
         $level = $character->level;
         $raceName = $character->raceObj->subrace->name; // ex: Mountain Dwarf
         $racialTraitIds = '';
-        foreach ($character->raceObj->racialTraits as $racialTrait) {
-            if ($racialTraitIds != '') {
-                $racialTraitIds .= ', ';
+        if (isset($character->raceObj->racialTraits)) {
+            foreach ($character->raceObj->racialTraits as $racialTrait) {
+                if ($racialTraitIds != '') {
+                    $racialTraitIds .= ', ';
+                }
+                $racialTraitIds .= $racialTrait->id;
             }
-            $racialTraitIds .= $racialTrait->id;
         }
         $classFeatureIds = '';
-        foreach ($character->classObj->classFeatures as $classFeature) {
-            if ($classFeatureIds != '') {
-                $classFeatureIds .= ', ';
+        if (isset($character->classObj->classFeatures)) {
+            foreach ($character->classObj->classFeatures as $classFeature) {
+                if ($classFeatureIds != '') {
+                    $classFeatureIds .= ', ';
+                }
+                $classFeatureIds .= $classFeature->id;
             }
-            $classFeatureIds .= $classFeature->id;
         }
         $spellIds = '';
-        // TODO: TEST THIS
-        foreach ($character->classObj->selectedSpells as $spell) {
-            if ($spellIds != '') {
-                $spellIds .= ', ';
+        if (isset($character->classObj->selectedSpells)) {
+            foreach ($character->classObj->selectedSpells as $spell) {
+                if ($spellIds != '') {
+                    $spellIds .= ', ';
+                }
+                $spellIds .= $spell->id;
             }
-            $spellIds .= $spell->id;
         }
         $size = $character->size;
         $speed = $character->speed;
@@ -265,6 +270,7 @@ class User_model extends CI_Model {
         //return $data;   // for testing only
         // TODO: uncomment later
         $this->db->insert('character_table', $data);
+        return $this->db->insert_id();
     }
 
     public function get_characters() {
@@ -280,6 +286,7 @@ class User_model extends CI_Model {
                 $character['id'] = $row->id;
                 //$character['user_id'] = $row->user_id;
                 $character['name'] = $row->name;
+                $character['date_added'] = $row->date_added;
                 $character['level'] = $row->level;
                 $character['race'] = $row->race;
                 $character['class'] = $row->class;
@@ -354,7 +361,7 @@ class User_model extends CI_Model {
             $character['survival'] = $row->survival >= 0 ? '+' . $row->survival : $row->survival;
             $character['senses'] = $row->senses;
             $character['traits'] = $this->_getRacialTraits($row->racial_trait_ids);
-            $character['features'] = $this->_getClassFeatures($row->class_feature_ids, $row->cantrips, $row->expertise);
+            $character['features'] = !empty($row->class_feature_ids) ? $this->_getClassFeatures($row->class_feature_ids, $row->cantrips, $row->expertise) : NULL;
             $character['background'] = $this->_getBackground($row->background);
             $character['spells'] = !empty($row->spells) ? $this->_getSpells($row->spells) : NULL;
             $character['spellcasting'] = !empty($row->spell_ability) ? $ability_mapper[$row->spell_ability] : NULL;
@@ -450,7 +457,7 @@ class User_model extends CI_Model {
     private function _getSpells($spellIds) {
         $sql = "SELECT spells_table.*" .
             " FROM spells_table" .
-            " WHERE id IN (" . $spellIds . ")";
+            " WHERE id IN (" . $spellIds . ") ORDER BY level";
         $query = $this->db->query($sql);
         if ($query->num_rows() > 0) {
             $spells = array();

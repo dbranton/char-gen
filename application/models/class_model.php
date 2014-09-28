@@ -135,11 +135,15 @@
                         if ($row->type == 'subclass') {
                             $class_feature['subclasses'] = $this->_getSubClasses($row->id);
                             //$this->_getSubClassDesc($row->id);
-                        }
-                        if ($row->type == 'super_feature') {
+                        } else if ($row->type == 'super_feature') {
+                            $class_feature['subfeatures'] = $this->_getClassLevelFeatures($row->id, TRUE);
+                        } else if ($row->type == 'super_feature_alt') {
+                            $class_feature['hide_desc'] = TRUE;
                             $class_feature['subfeatures'] = $this->_getClassLevelFeatures($row->id, TRUE);
                         }
-                        array_push($features, $class_feature);
+                        //if (!empty($class_feature['desc'])) {
+                            array_push($features, $class_feature);
+                        //}
                         //$features[$class_feature['id']] = $class_feature; // was [$row->name] but can't because names are no longer unique
                         //unset($class_feature['subclasses']);
                         //unset($class_feature['subfeatures']);

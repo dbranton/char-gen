@@ -33,6 +33,12 @@
                         <legend data-target="#backgroundPanel" data-toggle="collapse">Background</legend>
                         <div id="backgroundPanel" class="collapse in">
                             <div class="form-group">
+                                <label class="col-sm-4 control-label">Level:</label>
+                                <div class="col-sm-8 text">
+                                    {{character.level}}
+                                </div>
+                            </div>
+                            <div class="form-group">
                                 <label class="col-sm-4 control-label">Name:</label>
                                 <div class="col-sm-8">
                                     <input type="text" class="form-control" ng-model="character.name"="openRaceDialog()" /> <!--placeholder="Pick a Name..."-->
@@ -95,7 +101,8 @@
                                             <span class="fa fa-columns"></span>
                                         </label>
                                         <select ui-select2 ng-model="character.classObj.name" id="selectClass"
-                                                style="width: 100%" ng-change="broadcastObj(classData, character.classObj.name, 'clazz')">
+                                                style="width: 100%" ng-change="broadcastObj(classData, character.classObj.name, 'clazz')"
+                                                ng-disabled="!character.raceObj.name">
                                             <option ng-repeat="classObj in classData" value="{{classObj.name}}">{{classObj.name}}</option>
                                         </select>
                                     </div>
@@ -338,7 +345,7 @@
                                     <span ng-hide="character.languages">None</span>
                                     {{character.languages}}
                                     <div ng-hide="!character.background.name || character.numLanguages == 0">
-                                        <select ui-select2 languages="character.numLanguages" ng-model="character.selectedLanguages" id="chosenLanguages" multiple max="{{select2Languages}}" style="width: 100%">
+                                        <select ui-select2 languages="character.numLanguages" ng-model="character.selectedLanguages" id="chosenLanguages" multiple max="{{select2Languages}}" bonus-languages="character.classObj.bonusLanguages" style="width: 100%">
                                             <option ng-repeat="language in availableLanguages">{{language}}</option>
                                         </select>
                                     </div>

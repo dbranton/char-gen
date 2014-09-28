@@ -29,7 +29,6 @@ charGenService.factory('charGenFactory', function($http, $timeout, localStorageS
         //this.selectedSkills = [], // now in classObj
         this.selectedLanguages = null,
         //this.proficientSkills = '', // same as selectedSkills except in string form
-        this.skills = [{"name":"Acrobatics","ability":"Dex","val":0,"proficient":false,"disabled":true},{"name":"Animal Handling","ability":"Wis","val":0,"proficient":false,"disabled":true},{"name":"Arcana","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Athletics","ability":"Str","val":0,"proficient":false,"disabled":true},{"name":"Deception","ability":"Cha","val":0,"proficient":false,"disabled":true},{"name":"History","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Insight","ability":"Wis","val":0,"proficient":false,"disabled":true},{"name":"Intimidation","ability":"Cha","val":0,"proficient":false,"disabled":true},{"name":"Investigation","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Medicine","ability":"Wis","val":0,"proficient":false,"disabled":true},{"name":"Nature","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Perception","ability":"Wis","val":0,"proficient":false,"disabled":true},{"name":"Performance","ability":"Cha","val":0,"proficient":false,"disabled":true},{"name":"Persuasion","ability":"Cha","val":0,"proficient":false,"disabled":true},{"name":"Religion","ability":"Int","val":0,"proficient":false,"disabled":true},{"name":"Sleight of Hand","ability":"Dex","val":0,"proficient":false,"disabled":true},{"name":"Stealth","ability":"Dex","val":0,"proficient":false,"disabled":true},{"name":"Survival","ability":"Wis","val":0,"proficient":false,"disabled":true}];
         this.languages = null;
         this.numLanguages = 0;
         //alignment = null;
@@ -37,10 +36,6 @@ charGenService.factory('charGenFactory', function($http, $timeout, localStorageS
         this.attackMod = null;
         this.savingThrows = null;
         this.hitPoints = null;
-        //this.classFeatures = [];  // now located in classObj
-        //this.featureIds = [];
-        //this.racialTraits = [];   // now located in raceObj
-        //this.racialTraitIds = [];
         this.speed = null;
         this.initiative = null;
         this.armor = null;
@@ -316,6 +311,7 @@ charGenService.factory('charGenFactory', function($http, $timeout, localStorageS
         var bonusArray = [], characterArray = [], that = this, expertiseArr;
         this.armor = this.classObj.armor_prof || null;
         this.weapons = this.classObj.weapon_prof || null;
+        this.classObj.bonusLanguages = [];  //reset
         for (var bonusProp in featureBonus) {
             var propArray = bonusProp.split(' : ');  // usually results in one item
             propArray.forEach(function(prop, ind) {
@@ -428,7 +424,7 @@ charGenService.factory('charGenFactory', function($http, $timeout, localStorageS
                     that.classObj.expertise.type = prop;
                     that.classObj.expertise.numExpertise = bonusArray[0];
                     that.classObj.expertise.list = expertiseArr;
-                } else if (prop === 'additional_feature') {
+                } else if (prop === 'additional_feature') { // ex: Fighting Style
                     angular.forEach(that.classObj.selectedFeatures, function(feature) {
                         if (feature.label === featureBonus[prop]) {
                             feature.max = 2;    // assume feature_choices is 1
@@ -451,6 +447,15 @@ charGenService.factory('charGenFactory', function($http, $timeout, localStorageS
                             cantrips.splice(idx, 1);    // potentially dangerous
                         }
                     });*/
+                } else if (prop === 'bonus_language') { // not ready yet
+                    if (that.languages.indexOf(featureBonus[prop]) === -1) {
+                        that.classObj.bonusLanguages.push(featureBonus[prop]);
+
+                        bonusArray = that.languages.split(', ');
+                        bonusArray.push(featureBonus[prop]);
+                        bonusArray.sort();
+                        that.languages = bonusArray.join(', ');
+                    }
                 }
                 /*else if (prop === 'languages') {    // taken care of by determineRace
                     that.defaultLanguages = featureBonus[prop]; // string
@@ -504,6 +509,17 @@ charGenService.factory('charGenFactory', function($http, $timeout, localStorageS
             }
         }
     };
+    Character.prototype.getSkills = function() {
+        var that = this;
+        returnObj.getSkills().success(function(response) {
+            angular.forEach(response, function(skill) {
+                skill.val = 0;
+                skill.proficient = false;
+                skill.disabled = true;
+            });
+            that.skills = response;
+        });
+    }
     Character.prototype.resetSkills = function() {
         if (this.classObj) {
             this.numSkillsLeft = parseInt(this.classObj.num_skills);
@@ -542,6 +558,47 @@ charGenService.factory('charGenFactory', function($http, $timeout, localStorageS
         }
     };
 
+    var returnObj = {
+        getNewCharacter: function(level) {
+            var charLevel = level ? level : 1;
+            character = angular.copy(newCharacter); // resets character
+            character.getSkills();
+            character.level = charLevel;
+            character.calculateModifiers(); // recalculate ability modifiers
+            character.determineLevelBonus(charLevel);
+            return character;
+        },
+        returnStoredCharacter: function() {
+            return localStorageService.get('character');
+        },
+        storeCharacter: function() {
+            localStorageService.set('character', JSON.stringify(character));
+        },
+        getLanguages: function() {
+            return returnHttpProp('/json_get_languages');
+        },
+        getRaces: function() {
+            return returnHttpProp('/json_get_races');
+        },
+        getBackgrounds: function() {
+            return returnHttpProp('/json_get_backgrounds');
+        },
+        getClasses: function() {
+            return returnHttpProp('/json_get_classes');
+        },
+        getSkills: function() {
+            return returnHttpProp('/json_get_skills');
+        },
+        saveCharacter: function() {
+            var saveCharacterUrl = location.pathname.replace('character_generator', 'user/saveCharacter');
+            return $http({
+                method: 'POST',
+                url: saveCharacterUrl,
+                data: {'character': character},
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'}  // needed for php since default is application/json
+            });
+        }
+    };
     var character = new Character();
     character.ability = {
         str: {
@@ -611,44 +668,5 @@ charGenService.factory('charGenFactory', function($http, $timeout, localStorageS
             cache: true
         });
     }
-    return {
-        getNewCharacter: function(level) {
-            var charLevel = level ? level : 1;
-            character = angular.copy(newCharacter); // resets character
-            character.level = charLevel;
-            character.calculateModifiers(); // recalculate ability modifiers
-            character.determineLevelBonus(charLevel);
-            return character;
-        },
-        returnStoredCharacter: function() {
-            return localStorageService.get('character');
-        },
-        storeCharacter: function() {
-            localStorageService.set('character', JSON.stringify(character));
-        },
-        getLanguages: function() {
-            return returnHttpProp('/json_get_languages');
-        },
-        getRaces: function() {
-            return returnHttpProp('/json_get_races');
-        },
-        getBackgrounds: function() {
-            return returnHttpProp('/json_get_backgrounds');
-        },
-        getClasses: function() {
-            return returnHttpProp('/json_get_classes');
-        },
-        saveCharacter: function() {
-            var saveCharacterUrl = location.pathname.replace('character_generator', 'user/saveCharacter');
-            return $http({
-                method: 'POST',
-                url: saveCharacterUrl,
-                data: {'character': character},
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'}  // needed for php since default is application/json
-            });
-        },
-        returnSelect2SpellsConfig: function() {
-            return select2Spells;
-        }
-    };
+    return returnObj;
 });

@@ -85,7 +85,8 @@ class User extends CI_Controller {
         if (isset($this->session->userdata['logged_in'])) {
             $user_id = $this->session->userdata['logged_in']['id'];
             //$data['character'] = $this->user_model->add_character($user_id, $character);    // for testing only
-            $this->user_model->add_character($user_id, $character);
+            $characterId = $this->user_model->add_character($user_id, $character);
+            print $characterId;
         } else {
             // throw error/comment out when local storage is implemented
             header('HTTP/1.1 500 Internal Server Error');

@@ -3,6 +3,7 @@
         <thead>
         <tr>
             <th>Name</th>
+            <th>Created</th>
             <th>Level</th>
             <th>Race</th>
             <th>Class</th>
@@ -14,6 +15,7 @@
             <tr ng-if="characters.length == 0"><td colspan="5">You have no characters yet</td></tr>
             <tr ng-repeat="character in characters">
                 <td><a ng-href="character/{{character.id}}">{{character.name}}</a></td>
+                <td>{{character.date_added}}</td>
                 <td>{{character.level}}</td>
                 <td>{{character.race}}</td>
                 <td>{{character.class}}</td>

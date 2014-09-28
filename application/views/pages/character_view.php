@@ -9,6 +9,10 @@
         </thead>
         <tbody>
             <tr>
+                <th>Background</th>
+                <td><?php echo $character['background']['name']; ?></td>
+            </tr>
+            <tr>
                 <th>Armor Class</th>
                 <td><?php echo $character['armor_class']; ?></td>
             </tr>
@@ -130,10 +134,12 @@
                 <th>Spell Attack Bonus: </th>
                 <td><?php echo $character['spell_attk_bonus']; ?></td>
             </tr>
+            <?php if ($character['cantrips']): ?>
             <tr>
                 <th>Cantrips: </th>
                 <td><?php echo $character['cantrips']; ?></td>
             </tr>
+            <?php endif; ?>
             <?php foreach ($character['spells'] as $level => $spells_by_level): ?>
             <tr>
                 <th><?php echo $level; ?></th>
@@ -184,6 +190,6 @@
         }
     }
     ?>
-    <h3>Background: <?php echo $character['background']['name']; ?></h3>
-    <p><b><?php echo $character['background']['trait_name']; ?>.</b> <?php echo $character['background']['trait_desc']; ?></p>
+    <h3>Background Feature</h3>
+    <p><b><?php echo $character['background']['trait_name']; ?></b>: <?php echo $character['background']['trait_desc']; ?></p>
 </div>

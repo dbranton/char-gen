@@ -53,7 +53,7 @@
                 }
                 echo '</div>';  // end panel-group
             }
-            if (isset($class_feature['subfeatures']) && is_array($class_feature['subfeatures'])) {
+            if (isset($class_feature['subfeatures']) && is_array($class_feature['subfeatures']) && !isset($class_feature['hide_desc'])) {
                 echo '<dl>';
                 foreach ($class_feature['subfeatures'] as $id => $subfeature) {
                     echo '<dt>' . $subfeature['name'] . '</dt>';
